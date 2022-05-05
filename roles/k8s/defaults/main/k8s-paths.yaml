@@ -1,0 +1,5 @@
+pki_path_main:  "/pki"
+pki_path_ca:    "{{ pki_path_main }}/ca"
+pki_path_certs: "{{ pki_path_main }}/certs"
+
+etcd_data_dir: "/var/lib/etcd"

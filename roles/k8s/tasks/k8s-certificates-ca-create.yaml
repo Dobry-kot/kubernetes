@@ -1,0 +1,37 @@
+- name: test
+  vars:
+    component_prefix: "{% if component is defined %}{{ component }}-{%else%}{% endif %}"
+  block:
+    - name: CREATE CA CONF.
+      ansible.builtin.copy:
+        content: "{{ global.ca_config }}"
+        dest: "{{ pki_path_main }}/ca-config.json"
+      register: ca_csr_status
+
+    - name: CREATE CA CONF.
+      ansible.builtin.copy:
+        content: "{{ (csr | default({})) | combine(global.ca_csr) }}"
+        dest: "{{ pki_path_ca }}/{{ component_prefix }}ca-csr.json"
+      register: ca_csr_status
+
+    - name: CREATE CERT <{{component | default('ca') }}>.
+      shell: >
+        cfssl gencert 
+        -initca {{ pki_path_ca }}/{{ component_prefix }}ca-csr.json | 
+        cfssljson -bare {{ pki_path_ca }}/{{ component_prefix }}ca
+      when: ca_csr_status.changed | bool
+
+
+    - name: SIGN NEW <{{ component }}> CA.
+      shell: >
+        cfssl sign
+        -ca={{ pki_path_ca }}/root-ca.pem
+        -ca-key={{ pki_path_ca }}/root-ca-key.pem
+        -config={{ pki_path_main }}/ca-config.json
+        -profile=intermediate_ca
+        {{ pki_path_ca }}/{{ component_prefix }}ca.csr |
+        cfssljson -bare {{ pki_path_ca }}/{{ component_prefix }}ca
+      when: component_prefix != 'root-' and
+            ca_csr_status.changed | bool
+  tags:
+    - ssl

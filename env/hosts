@@ -1,0 +1,21 @@
+[bastion]
+bastion ansible_host=localhost
+
+[masters]
+cl11erbm03uhlfvrl4tp-uzav ansible_host=51.250.87.239
+cl11erbm03uhlfvrl4tp-yxox ansible_host=51.250.75.40
+cl11erbm03uhlfvrl4tp-ufow ansible_host=51.250.1.152
+
+[masters:vars]
+advertise_address=1.1.1.1
+
+[workers]
+
+[all:children]
+bastion
+masters
+workers
+
+[all:vars]
+ansible_user     = dkot
+ansible_become   = True

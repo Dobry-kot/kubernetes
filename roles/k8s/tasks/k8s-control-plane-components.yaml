@@ -1,0 +1,40 @@
+- name: BASIC.
+  import_role:
+    name: k8s
+    tasks_from: k8s-basic.yaml
+  tags:
+    - ttt
+
+- name: CREATE AND DELIVERY BASIC CERTS.
+  vars:
+    component: root
+  block:
+
+    - name: CREATE CA.
+      vars:
+        csr:
+          CN: Kubernetes
+          names:
+            - O: "Kubernetes"
+        component: root
+      import_role:
+        name: k8s
+        tasks_from: k8s-certificates-ca-create.yaml
+      delegate_to: "{{ groups.masters[0] }}"
+
+    - name: DELIVERY CA.
+      import_role:
+        name: k8s
+        tasks_from: k8s-certificates-ca-delivery.yaml
+
+  tags:
+    - cp_ssl
+    - etcd
+
+- name: SETUP ETCD CLUSTER.
+  import_role:
+    name: k8s
+    tasks_from: k8s-etcd.yaml
+  tags:
+    - etcd
+

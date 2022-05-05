@@ -1,0 +1,8 @@
+k8s_version:          "1.23.5"
+containerd_version:   "1.6.2"
+cni_plugin:           "1.1.1"
+runc_version:         "1.0.0-rc93"
+cri_tool_version:     "1.23.0"
+cfssl_version:        "1.6.1"
+etcd_version:         "3.5.4"
+basic_cri:            "containerd"

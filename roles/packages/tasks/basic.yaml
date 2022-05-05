@@ -1,0 +1,4 @@
+- name: INSTALL BASIC PACKAGES.
+  ansible.builtin.package:
+    name: "{{ basic_packages }}"
+    state: latest

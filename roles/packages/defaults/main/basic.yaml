@@ -1,0 +1,6 @@
+basic_packages:
+  - jq
+  - tree
+  - irqbalance
+  - atop
+  - net-tools

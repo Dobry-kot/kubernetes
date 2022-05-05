@@ -1,0 +1,25 @@
+---
+- name: FIND ALL PEM IN <{{ groups.masters[0] }}>
+  find:
+    paths: /pki/
+    patterns: '{{ component }}-ca.*,{{ component }}-ca-key.*,ca-config.json'
+    recurse: true
+  register: finded_certs
+  delegate_to: "{{ groups.masters[0] }}"
+
+- name: COPY CERTS CONTENT IN VAR. 
+  ansible.builtin.slurp:
+    src: "{{ cert.path }}"
+  register: cert_content
+  delegate_to: "{{ groups.masters[0] }}"
+  loop: "{{ finded_certs.files }}"
+  loop_control:
+    loop_var: cert
+
+- name: COPY CERTIFICATES BY MASTERS.
+  ansible.builtin.copy:
+    content: "{{ file.content | b64decode }}"
+    dest: "{{ file.source }}"
+  loop: "{{ cert_content.results }}"
+  loop_control:
+    loop_var: file

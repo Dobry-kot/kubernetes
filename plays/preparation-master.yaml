@@ -1,0 +1,29 @@
+---
+- name: Create and apply manifests for Nginx Routers
+  hosts: masters
+  # connection: local
+  # become_user: true
+  tasks:
+    # - name: INSTALL BASIC COMPONENTS.
+    #   import_role:
+    #     name: k8s
+    #     tasks_from: test.yaml
+
+
+    - name: SETUP COMPONENTS.
+      block:
+        - name: INSTALL BASIC COMPONENTS.
+          import_role:
+            name: packages
+            tasks_from: basic.yaml
+
+        - name: SETUP K8S COMPONENTS.
+          import_role:
+            name: k8s
+            tasks_from: k8s-control-plane-components.yaml
+
+        - name: SETUP K8S COMPONENTS.
+          import_role:
+            name: k8s
+            tasks_from: k8s-data-plane-components.yaml
+          when: master_scheduled | bool

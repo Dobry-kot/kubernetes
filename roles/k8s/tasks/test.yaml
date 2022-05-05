@@ -1,0 +1,4 @@
+
+- name: SETUP COMPONENTS.
+  debug:
+    msg: "{{ hostvars[groups.masters[0]].ansible_default_ipv4.address }}"
