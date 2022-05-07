@@ -37,9 +37,9 @@
       - "localhost"
       - "{{ ansible_default_ipv4.address }}"
     csr:
-      CN: "etcd-peer"
+      CN: "system:etcd-peer"
       names:
-        - O: "etcd"
+        - O: "system:etcd"
       hosts: "{{ hosts_list + groups.masters }}"
     profile: peer
     ca: etcd
@@ -48,23 +48,6 @@
     tasks_from: k8s-certificate-template.yaml
   tags:
     - etcd_ssl
-
-- name: CREATE CERT ETCD CLIENT.
-  vars:
-    hosts_list: 
-      - "127.0.0.1"
-      - "localhost"
-      - "{{ ansible_default_ipv4.address }}"
-    csr:
-      CN: "etcd-client"
-      names:
-        - O: "etcd"
-      hosts: "{{ hosts_list + groups.masters }}"
-    profile: client
-    ca: etcd
-  import_role:
-    name: k8s
-    tasks_from: k8s-certificate-template.yaml
 
 - name: CREATE A REMOTE FILE WITH FOUND CONTENT. 
   ansible.builtin.copy:
@@ -81,7 +64,7 @@
   vars:
     services_list:
       - etcd.service
-  include_role:
+  import_role:
     name: k8s
     tasks_from: k8s-service-create.yaml
   when: master_scheduled | bool

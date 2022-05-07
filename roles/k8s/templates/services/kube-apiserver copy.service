@@ -1,0 +1,61 @@
+[Unit]
+Description=kube-apiserver
+Documentation=https://github.com/coreos
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/kube-apiserver \
+  --tls-cert-file={{ pki_path_certs }}/system:kube-apiserver-server.pem \
+  --tls-private-key-file={{ pki_path_certs }}/system:kube-apiserver-server-key.pem \
+  --client-ca-file={{ pki_path_ca }}/root-ca.pem \
+  --v=2 \
+  --etcd-cafile={{ pki_path_ca }}/etcd-ca.pem \
+  --etcd-certfile={{ pki_path_certs }}/system:kube-apiserver-etcd-client.pem \
+  --etcd-keyfile={{ pki_path_certs }}/system:kube-apiserver-etcd-client-key.pem \
+  --kubelet-client-certificate={{ pki_path_certs }}/system:kube-apiserver-kubelet-client.pem \
+  --kubelet-client-key={{ pki_path_certs }}/system:kube-apiserver-kubelet-client-key.pem \
+  --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname \
+  --kubelet-timeout=5s \
+  --service-cluster-ip-range="{{ cluster_default_service_network }}" \
+  --etcd-servers=https://{{ hostvars[groups.masters[0]].ansible_default_ipv4.address }}:2379,https://{{ hostvars[groups.masters[1]].ansible_default_ipv4.address }}:2379,https://{{ hostvars[groups.masters[2]].ansible_default_ipv4.address }}:2379 \
+  --secure-port=6443 \
+  --advertise-address="{{ external_api_ip }}" \
+  --proxy-client-cert-file={{ pki_path_certs }}/system:kube-apiserver-front-proxy-client.pem \
+  --proxy-client-key-file={{ pki_path_certs }}/system:kube-apiserver-front-proxy-client-key.pem \
+  --requestheader-client-ca-file={{ pki_path_ca }}/front-proxy-ca.pem \
+  --requestheader-allowed-names=front-proxy-client \
+  --requestheader-extra-headers-prefix=X-Remote-Extra- \
+  --requestheader-group-headers=X-Remote-Group \
+  --requestheader-username-headers=X-Remote-User \
+  --requestheader-allowed-names=aggregator \
+  --allow-privileged=true \
+  --authorization-mode=Node,RBAC \
+  --bind-address=0.0.0.0 \
+  --enable-admission-plugins=NodeRestriction \
+  --enable-bootstrap-token-auth=true \
+  --runtime-config=api/all=true \
+  --enable-aggregator-routing=true  \
+  --service-account-key-file={{ pki_path_certs }}/system:kube-apiserver-kubelet-client.pem \
+  --api-audiences=system:konnectivity-server \
+  --service-account-signing-key-file={{ pki_path_certs }}/system:kube-apiserver-kubelet-client-key.pem \
+  --service-account-issuer=https://kubernetes.default.svc.cluster.local \
+  --anonymous-auth=false \
+  --audit-log-maxage=30 \
+  --audit-log-maxbackup=10 \
+  --audit-log-maxsize=1000 \
+  --audit-log-path=/var/log/kubernetes/kube-apiserver-audit.log \
+  --audit-log-mode=batch \
+  --audit-policy-file=/etc/kubernetes/audit-policy.yaml \
+  --event-ttl=1h0m0s \
+  --kubernetes-service-node-port=0 \
+  --master-service-namespace=default \
+  --max-connection-bytes-per-sec=0 \
+  --max-requests-inflight=400 \
+  --min-request-timeout=1800 \
+  --profiling=false 
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

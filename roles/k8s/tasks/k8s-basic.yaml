@@ -20,8 +20,12 @@
   loop:
     - /pki/certs/configs
     - /pki/ca
+    - /etc/kubernetes
+    - /var/log/kubernetes
   loop_control:
       loop_var: k8s_component_path
+  tags:
+    - update_dirs
 
 - name: DOWNLOAD <cfssl>.
   get_url:

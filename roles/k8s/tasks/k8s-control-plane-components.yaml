@@ -38,3 +38,16 @@
   tags:
     - etcd
 
+- name: SETUP KUBE-APISERVER.
+  import_role:
+    name: k8s
+    tasks_from: k8s-kube-apiserver.yaml
+  tags:
+    - kube_apiserver
+
+- name: SETUP KUBE-CONTROLLER-MANAGER.
+  import_role:
+    name: k8s
+    tasks_from: kube-controller-manager.yaml
+  tags:
+    - kube_controller_manager

@@ -7,9 +7,7 @@
 
 - name: CREATE CSR <{{ csr.CN }}>.
   vars:
-    new_csr: "{{ (csr | default({})) | combine(global.ca_csr) | to_json }}"
-    tmp_content:
-      content: false
+    new_csr: "{{ global.ca_csr | combine(csr) | to_json }}"
   ansible.builtin.copy:
     content: "{{ new_csr }}"
     dest: "{{ pki_path_certs }}/configs/{{ csr.CN }}.json"

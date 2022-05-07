@@ -19,10 +19,10 @@
     - name: RESTART SERVICE {{ serive_changed.service_name }}.
       service:
         name: "{{ serive_changed.service_name }}"
-        state: restarted
+        state: "{{ service_state | default('restarted') }}"
       loop: "{{ service_status.results }}"
       loop_control:
           loop_var: serive_changed
-      when: serive_changed.changed | bool
 
-  when: service_status.changed | bool 
+  when: service_status.changed | bool or 
+        service_state is defined

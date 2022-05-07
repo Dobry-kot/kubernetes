@@ -6,24 +6,25 @@ Documentation=https://github.com/coreos
 Type=notify
 ExecStart=/usr/bin/etcd \
   --name={{ inventory_hostname }} \
-  --cert-file={{ pki_path_certs }}/etcd-peer.pem \
-  --key-file={{ pki_path_certs }}/etcd-peer-key.pem \
+  --cert-file={{ pki_path_certs }}/system:etcd-peer.pem \
+  --key-file={{ pki_path_certs }}/system:etcd-peer-key.pem \
   --trusted-ca-file={{ pki_path_ca }}/etcd-ca.pem \
   --peer-client-cert-auth=true \
   --peer-auto-tls=true \
   --peer-trusted-ca-file={{ pki_path_ca }}/etcd-ca.pem \
-  --peer-cert-file={{ pki_path_certs }}/etcd-peer.pem \
-  --peer-key-file={{ pki_path_certs }}/etcd-peer-key.pem \
+  --peer-cert-file={{ pki_path_certs }}/system:etcd-peer.pem \
+  --peer-key-file={{ pki_path_certs }}/system:etcd-peer-key.pem \
   --client-cert-auth=true \
-  --initial-advertise-peer-urls=https://{{ ansible_default_ipv4.address }}:2380 \
-  --listen-client-urls=https://0.0.0.0:2379 \
-  --listen-peer-urls=https://0.0.0.0:2380 \
-  --listen-metrics-urls=http://0.0.0.0:2381 \
-  --advertise-client-urls=https://{{ ansible_default_ipv4.address }}:2379 \
+  --initial-advertise-peer-urls=https://{{ inventory_hostname }}:2380 \
+  --listen-client-urls=https://{{ ansible_default_ipv4.address }}:2379,https://127.0.0.1:2379,https://127.0.1.1:2379 \
+  --listen-peer-urls=https://{{ ansible_default_ipv4.address }}:2380,https://127.0.0.1:2380,https://127.0.1.1:2380 \
+  --listen-metrics-urls=http://{{ ansible_default_ipv4.address }}:2381,https://127.0.0.1:2381,https://127.0.1.1:2381 \
+  --advertise-client-urls=https://{{ inventory_hostname }}:2379 \
   --initial-cluster-token=etcd \
   --initial-cluster={{ groups.masters[0] }}=https://{{ hostvars[groups.masters[0]].ansible_default_ipv4.address }}:2380,{{ groups.masters[1] }}=https://{{ hostvars[groups.masters[1]].ansible_default_ipv4.address }}:2380,{{ groups.masters[2] }}=https://{{ hostvars[groups.masters[2]].ansible_default_ipv4.address }}:2380 \
   --initial-cluster-state=new \
-  --data-dir={{ etcd_data_dir }}
+  --data-dir={{ etcd_data_dir }} \
+  --strict-reconfig-check
 Restart=on-failure
 RestartSec=5
 

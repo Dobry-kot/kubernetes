@@ -46,7 +46,7 @@
 
 - name: COPY BASIC CNI CONFIG.
   ansible.builtin.template:
-    src: cni-plugin/basic/99-loopback.conf
+    src: configs/cni-plugin/basic/99-loopback.conf
     dest: /etc/cni/net.d/99-loopback.conf
     owner: root
     group: root
