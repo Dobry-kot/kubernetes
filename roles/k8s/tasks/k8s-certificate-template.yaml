@@ -24,5 +24,5 @@
     -ca-key={{ pki_path_ca }}/{{ ca_prefix }}ca-key.pem \
     -config={{ pki_path_main }}/ca-config.json \
     -profile={{ profile }} \
-    {{ pki_path_certs }}/configs/{{ csr.CN }}.json | cfssljson -bare {{ pki_path_certs }}/{{ csr.CN }}
+    {{ pki_path_certs }}/configs/{{ csr.CN }}.json | cfssljson -bare {{ pki_path_certs }}/{{ k8s_component }}/{{ csr.CN }}
   when: csr_status.changed | bool

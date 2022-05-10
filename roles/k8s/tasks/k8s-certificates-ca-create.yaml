@@ -1,5 +1,6 @@
-- name: test
+- name: BLOCK NEW CA.
   vars:
+    component: "{{ component_local | default(k8s_component) }}"
     component_prefix: "{% if component is defined %}{{ component }}-{%else%}{% endif %}"
   block:
     - name: CREATE CA CONF.
@@ -14,7 +15,7 @@
         dest: "{{ pki_path_ca }}/{{ component_prefix }}ca-csr.json"
       register: ca_csr_status
 
-    - name: CREATE CERT <{{component | default('ca') }}>.
+    - name: CREATE CERT <{{ component }}>.
       shell: >
         cfssl gencert 
         -initca {{ pki_path_ca }}/{{ component_prefix }}ca-csr.json | 

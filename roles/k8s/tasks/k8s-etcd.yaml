@@ -1,72 +1,85 @@
 ---
-- name: DOWNLOAD BASIC TAR K8S-CP-COMPONENTS.
-  ansible.builtin.unarchive:
-    src: "{{ k8s_cp_tar.url }}"
-    dest: "{{ k8s_cp_tar.path }}"
-    remote_src: yes
-  loop:
-    - url: https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz
-      path: /root
-  loop_control:
-      loop_var: k8s_cp_tar
-
-- name: NEW <{{ component }}> CA.
+- name: SETUP ETCD.
   vars:
-    component: etcd
+    k8s_component: etcd
   block:
-    - name: CREATE <{{ component }}> CA.
+    - name: DOWNLOAD BASIC TAR K8S-CP-COMPONENTS.
+      ansible.builtin.unarchive:
+        src: "{{ k8s_cp_tar.url }}"
+        dest: "{{ k8s_cp_tar.path }}"
+        remote_src: yes
+      loop:
+        - url: https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz
+          path: /root
+      loop_control:
+          loop_var: k8s_cp_tar
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: "{{ k8s_component_path }}"
+        state: directory
+        mode: '0775'
+      loop:
+        - /etc/kubernetes/{{ k8s_component }}
+        - /pki/certs/{{ k8s_component }}
+      loop_control:
+          loop_var: k8s_component_path
+          
+    - name: NEW <{{ k8s_component }}> CA.
+      block:
+        - name: CREATE <{{ k8s_component }}> CA.
+          vars:
+            csr:
+              CN: "{{ k8s_component }}-ca"
+              names:
+                - O: "{{ k8s_component }}-ca"
+          import_role:
+            name: k8s
+            tasks_from: k8s-certificates-ca-create.yaml
+          delegate_to: "{{ groups.masters[0] }}"
+
+        - name: DELIVERY CA.
+          import_role:
+            name: k8s
+            tasks_from: k8s-certificates-ca-delivery.yaml
+
+    - name: CREATE CERT ETCD SERVER.
       vars:
+        hosts_list: 
+          - "127.0.0.1"
+          - "localhost"
+          - "{{ ansible_default_ipv4.address }}"
         csr:
-          CN: etcd-ca
+          CN: "system:{{ k8s_component }}-peer"
           names:
-            - O: "etcd-ca"
+            - O: "system:{{ k8s_component }}"
+          hosts: "{{ hosts_list + groups.masters }}"
+        profile: peer
+        ca: etcd
       import_role:
         name: k8s
-        tasks_from: k8s-certificates-ca-create.yaml
-      delegate_to: "{{ groups.masters[0] }}"
+        tasks_from: k8s-certificate-template.yaml
+      tags:
+        - etcd_ssl
 
-    - name: DELIVERY CA.
+    - name: CREATE A REMOTE FILE WITH FOUND CONTENT. 
+      ansible.builtin.copy:
+        src: /root/etcd-v{{ etcd_version }}-linux-amd64/{{item}}
+        dest: /usr/bin/{{ item }}
+        remote_src: true
+        mode: 0775
+      loop:
+        - etcd
+        - etcdctl
+        - etcdutl
+
+    - name: ADD NEW SERVICES.
+      vars:
+        services_list:
+          - etcd.service
       import_role:
         name: k8s
-        tasks_from: k8s-certificates-ca-delivery.yaml
-
-- name: CREATE CERT ETCD SERVER.
-  vars:
-    hosts_list: 
-      - "127.0.0.1"
-      - "localhost"
-      - "{{ ansible_default_ipv4.address }}"
-    csr:
-      CN: "system:etcd-peer"
-      names:
-        - O: "system:etcd"
-      hosts: "{{ hosts_list + groups.masters }}"
-    profile: peer
-    ca: etcd
-  import_role:
-    name: k8s
-    tasks_from: k8s-certificate-template.yaml
-  tags:
-    - etcd_ssl
-
-- name: CREATE A REMOTE FILE WITH FOUND CONTENT. 
-  ansible.builtin.copy:
-    src: /root/etcd-v{{ etcd_version }}-linux-amd64/{{item}}
-    dest: /usr/bin/{{ item }}
-    remote_src: true
-    mode: 0775
-  loop:
-    - etcd
-    - etcdctl
-    - etcdutl
-
-- name: ADD NEW SERVICES.
-  vars:
-    services_list:
-      - etcd.service
-  import_role:
-    name: k8s
-    tasks_from: k8s-service-create.yaml
-  when: master_scheduled | bool
-  tags:
-    - etcd_service_update
+        tasks_from: k8s-service-create.yaml
+      when: master_scheduled | bool
+      tags:
+        - etcd_service_update

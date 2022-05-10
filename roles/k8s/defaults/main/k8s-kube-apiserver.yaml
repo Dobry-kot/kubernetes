@@ -1,0 +1,35 @@
+kube_apiserver_args:
+    - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+    - --kubelet-timeout=5s
+    - --v=2
+    - --service-cluster-ip-range='{{ cluster_default_service_network }}'
+    - --secure-port='6443'
+    - --advertise-address='{{ external_api_ip }}'
+    - --requestheader-allowed-names=front-proxy-client
+    - --requestheader-extra-headers-prefix=X-Remote-Extra-
+    - --requestheader-group-headers=X-Remote-Group
+    - --requestheader-username-headers=X-Remote-User
+    - --requestheader-allowed-names=aggregator
+    - --allow-privileged=true
+    - --authorization-mode=Node,RBAC
+    - --bind-address=0.0.0.0
+    - --enable-admission-plugins=NodeRestriction
+    - --enable-bootstrap-token-auth=true
+    - --runtime-config=api/all=true
+    - --enable-aggregator-routing=true 
+    - --api-audiences=system:konnectivity-server
+    - --service-account-issuer=https://kubernetes.default.svc.cluster.local
+    - --anonymous-auth=false
+    - --audit-log-maxage=30
+    - --audit-log-maxbackup=10
+    - --audit-log-maxsize=1000
+    - --audit-log-path=/var/log/kubernetes/kube-apiserver-audit.log
+    - --audit-log-mode=batch
+    - --audit-policy-file=/etc/kubernetes/kube-apiserver/audit-policy.yaml
+    - --event-ttl=1h0m0s
+    - --kubernetes-service-node-port=0
+    - --master-service-namespace=default
+    - --max-connection-bytes-per-sec=0
+    - --max-requests-inflight=400
+    - --min-request-timeout=1800
+    - --profiling=false

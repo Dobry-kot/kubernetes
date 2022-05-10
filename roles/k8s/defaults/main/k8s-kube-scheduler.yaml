@@ -1,0 +1,4 @@
+kube_scheduler_args:
+    - --bind-address=0.0.0.0
+    - --leader-elect=true
+    - --secure-port=10259

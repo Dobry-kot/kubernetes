@@ -1,7 +1,7 @@
 ---
-- name: SETUP KUBE-CONTROLLER-MANGER.
+- name: SETUP KUBE-SCHEDULER.
   vars:
-    k8s_component: kube-controller-manager
+    k8s_component: kube-scheduler
   block:
     - name: DOWNLOAD BASIC BINARY K8S-COMPONENTS.
       get_url:
@@ -9,48 +9,11 @@
         dest: "{{ k8s_component_bin.path }}"
         mode: 0775
       loop:
-        - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/amd64/kube-controller-manager
+        - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/amd64/{{ k8s_component }}
           path: /usr/bin/
       loop_control:
           loop_var: k8s_component_bin
 
-    - name: SSL BLOCK.
-      block:
-        - name: CREATE CERT <kube-controller-manager> SERVER.
-          vars:
-            hosts_list: 
-              - "127.0.0.1"
-              - "127.0.1.1"
-              - "127.0.1.6"
-              - "localhost"
-              - "kube-controller-manager.svc"
-              - "{{ ansible_default_ipv4.address }}"
-              - "{{ inventory_hostname }}"
-            csr:
-              CN: "system:kube-controller-manager-server"
-              names:
-                - O: "system:kube-controller-manager"
-              hosts: "{{ hosts_list + groups.masters }}"
-            profile: server
-            ca: root
-          import_role:
-            name: k8s
-            tasks_from: k8s-certificate-template.yaml
-
-        - name: CREATE CERT <kube-controller-manager> CLIENT.
-          vars:
-            csr:
-              CN: "system:kube-controller-manager"
-              names:
-                - O: "system:kube-controller-manager"
-            profile: client
-            ca: root
-          import_role:
-            name: k8s
-            tasks_from: k8s-certificate-template.yaml
-      tags:
-        - ssl_kube_controller_manager
-        
     - name: Create a directory if it does not exist
       ansible.builtin.file:
         path: "{{ k8s_component_path }}"
@@ -58,12 +21,50 @@
         mode: '0775'
       loop:
         - /etc/kubernetes/{{ k8s_component }}
+        - /pki/certs/{{ k8s_component }}
       loop_control:
           loop_var: k8s_component_path
 
+    - name: SSL BLOCK.
+      block:
+        - name: CREATE CERT <{{ k8s_component }}> SERVER.
+          vars:
+            hosts_list: 
+              - "127.0.0.1"
+              - "127.0.1.1"
+              - "127.0.1.6"
+              - "localhost"
+              - "{{ k8s_component }}.svc"
+              - "{{ ansible_default_ipv4.address }}"
+              - "{{ inventory_hostname }}"
+            csr:
+              CN: "system:{{ k8s_component }}-server"
+              names:
+                - O: "system:{{ k8s_component }}"
+              hosts: "{{ hosts_list + groups.masters }}"
+            profile: server
+            ca: root
+          import_role:
+            name: k8s
+            tasks_from: k8s-certificate-template.yaml
+
+        - name: CREATE CERT <{{ k8s_component }}> CLIENT.
+          vars:
+            csr:
+              CN: "system:{{ k8s_component }}"
+              names:
+                - O: "system:{{ k8s_component }}"
+            profile: client
+            ca: root
+          import_role:
+            name: k8s
+            tasks_from: k8s-certificate-template.yaml
+      tags:
+        - ssl_kube_kube-scheduler
+        
     - name: COPY CONFIGS.
       vars:
-        kubeconfig_cert: system:kube-controller-manager
+        kubeconfig_cert: system:{{ k8s_component }}
       ansible.builtin.template:
         src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
         dest: "{{ config.path }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
@@ -77,18 +78,18 @@
           path: /etc/kubernetes
         - name: service-args.j2
           path: /etc/kubernetes
-          folder: kube-controller-manager
+          folder: "{{ k8s_component }}"
       loop_control:
           loop_var: config
       tags:
-        - kube_controller_manager_service_update
+        - kube_kube-scheduler_service_update
 
     - name: ADD NEW SERVICES.
       vars:
         services_list:
-          - kube-controller-manager.service
+          - "{{ k8s_component }}.service"
       import_role:
         name: k8s
         tasks_from: k8s-service-create.yaml
       tags:
-        - kube_controller_manager_service_update
+        - kube_kube-scheduler_service_update

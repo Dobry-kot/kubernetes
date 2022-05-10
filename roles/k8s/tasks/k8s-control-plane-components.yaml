@@ -7,16 +7,14 @@
 
 - name: CREATE AND DELIVERY BASIC CERTS.
   vars:
-    component: root
+    component_local: root
   block:
-
     - name: CREATE CA.
       vars:
         csr:
           CN: Kubernetes
           names:
             - O: "Kubernetes"
-        component: root
       import_role:
         name: k8s
         tasks_from: k8s-certificates-ca-create.yaml
@@ -48,6 +46,13 @@
 - name: SETUP KUBE-CONTROLLER-MANAGER.
   import_role:
     name: k8s
-    tasks_from: kube-controller-manager.yaml
+    tasks_from: k8s-kube-controller-manager.yaml
   tags:
     - kube_controller_manager
+
+- name: SETUP KUBE-SCHEDULER.
+  import_role:
+    name: k8s
+    tasks_from: k8s-kube-scheduler.yaml
+  tags:
+    - kube_scheduler

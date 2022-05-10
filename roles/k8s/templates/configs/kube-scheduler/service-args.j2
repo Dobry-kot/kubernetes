@@ -1,0 +1,13 @@
+# The following values are used to configure the kubernetes scheduler
+#
+
+# Add your own!
+KUBE_SCHEDULER_ARGS="
+    --authentication-kubeconfig=/etc/kubernetes/{{ k8s_component }}/kubeconfig 
+    --authorization-kubeconfig=/etc/kubernetes/{{ k8s_component }}/kubeconfig 
+    --kubeconfig=/etc/kubernetes/{{ k8s_component }}/kubeconfig 
+    --tls-cert-file={{ pki_path_certs }}/{{ k8s_component }}/system:kube-scheduler-server.pem 
+    --tls-private-key-file={{ pki_path_certs }}/{{ k8s_component }}/system:kube-scheduler-server-key.pem 
+{% for arg in kube_scheduler_args %}
+    {{ arg }}
+{% endfor %}"
