@@ -19,7 +19,7 @@ kube_apiserver_args:
     - --enable-aggregator-routing=true 
     - --api-audiences=system:konnectivity-server
     - --service-account-issuer=https://kubernetes.default.svc.cluster.local
-    - --anonymous-auth=false
+    - --anonymous-auth=true
     - --audit-log-maxage=30
     - --audit-log-maxbackup=10
     - --audit-log-maxsize=1000

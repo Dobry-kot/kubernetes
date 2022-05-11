@@ -44,6 +44,13 @@
   loop_control:
       loop_var: k8s_component_bin
 
+- name: COPY COMPONENT BY FOLDERS.
+  copy:
+    src: /root/containerd/bin/containerd
+    dest: /usr/bin/containerd
+    mode: 0775
+    remote_src: true
+
 - name: COPY BASIC CNI CONFIG.
   ansible.builtin.template:
     src: configs/cni-plugin/basic/99-loopback.conf

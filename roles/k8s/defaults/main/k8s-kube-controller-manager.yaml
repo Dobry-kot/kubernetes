@@ -29,5 +29,6 @@ kube_controller_manager_args:
     - --terminated-pod-gc-threshold=0 
     - --use-service-account-credentials=true 
     - --controllers=*,bootstrapsigner,tokencleaner 
-    - --authorization-always-allow-paths=/healthz,/metrics 
+    - --authorization-always-allow-paths=/healthz,/metrics
+    - --feature-gates=RotateKubeletServerCertificate=true
     - --v=2

@@ -1,29 +1,33 @@
-- name: COPY SERVICES.
-  ansible.builtin.template:
-    src: "services/{{ service_name }}"
-    dest: /etc/systemd/system/{{ service_name }}
-    owner: root
-    group: root
-    mode: '0775'
-  loop: "{{ services_list }}"
-  loop_control:
-      loop_var: service_name
-  register: service_status
-
-- name: RESTART SERVICES IF CHANGED.
+- name: BLCOK SERVICES.
   block:
-    - name: DAEMON-RELOAD.
-      ansible.builtin.systemd:
-        daemon_reload: yes
-
-    - name: RESTART SERVICE {{ serive_changed.service_name }}.
-      service:
-        name: "{{ serive_changed.service_name }}"
-        state: "{{ service_state | default('restarted') }}"
-        enabled: true
-      loop: "{{ service_status.results }}"
+    - name: COPY SERVICES.
+      ansible.builtin.template:
+        src: "services/{{ service_name }}"
+        dest: /etc/systemd/system/{{ service_name }}
+        owner: root
+        group: root
+        mode: '0775'
+      loop: "{{ services_list }}"
       loop_control:
-          loop_var: serive_changed
+          loop_var: service_name
+      register: service_status
 
-  when: service_status.changed | bool or 
-        service_state is defined
+    - name: RESTART SERVICES IF CHANGED.
+      block:
+        - name: DAEMON-RELOAD.
+          ansible.builtin.systemd:
+            daemon_reload: yes
+
+        - name: RESTART SERVICE {{ serive_changed.service_name }}.
+          service:
+            name: "{{ serive_changed.service_name }}"
+            state: "{{ service_state | default('restarted') }}"
+            enabled: true
+          loop: "{{ service_status.results }}"
+          loop_control:
+              loop_var: serive_changed
+
+      when: service_status.changed | bool or 
+            service_state is defined
+  tags:
+    - update_services
