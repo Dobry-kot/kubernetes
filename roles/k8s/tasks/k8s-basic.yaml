@@ -2,15 +2,15 @@
   ansible.builtin.hostname:
     name: "{{ inventory_hostname }}"
 
-- name: add hostname to /etc/hosts
-  vars:
-    comment: '# added by ansible'
-  lineinfile:
-    dest: /root/.bashrc
-    regexp: "127[.]0[.]0[.]1.*"
-    line: "127.0.0.1 localhost.localdomain localhost {{ inventory_hostname }} {{ comment }}"
-    state: present
-    backup: yes
+# - name: add hostname to /etc/hosts
+#   vars:
+#     comment: '# added by ansible'
+#   lineinfile:
+#     dest: /root/.bashrc
+#     regexp: "127[.]0[.]0[.]1.*"
+#     line: "127.0.0.1 localhost.localdomain localhost {{ inventory_hostname }} {{ comment }}"
+#     state: present
+#     backup: yes
 
 - name: Create a directory if it does not exist
   ansible.builtin.file:
@@ -18,9 +18,8 @@
     state: directory
     mode: '0775'
   loop:
-    - /pki/certs/configs
-    - /pki/ca
-    - /etc/kubernetes
+    - /etc/kubernetes/pki/ca
+    - /etc/kubernetes/pki/certs/configs
     - /var/log/kubernetes
   loop_control:
       loop_var: k8s_component_path
@@ -39,3 +38,10 @@
       path: /usr/bin/cfssljson
   loop_control:
       loop_var: k8s_cp_component_bin
+
+# - name: UPDATE REPOS.
+#   import_role:
+#     name: packages
+#     tasks_from: update-repo.yaml
+#   tags:
+#     - update_repo
