@@ -50,8 +50,6 @@
       loop: "{{ list_manifests }}"
       loop_control:
           loop_var: config
-      tags:
-        - kube_apiserver_service_update
 
     - name: APPLY MANIFESTS.
       kubernetes.core.k8s:

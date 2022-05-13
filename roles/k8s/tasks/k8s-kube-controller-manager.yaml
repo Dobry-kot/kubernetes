@@ -48,17 +48,17 @@
             name: k8s
             tasks_from: k8s-certificate-template.yaml
 
-        # - name: CREATE CERT <{{ k8s_component }}> CLIENT.
-        #   vars:
-        #     csr:
-        #       CN: "system:{{ k8s_component }}"
-        #       names:
-        #         - O: "system:{{ k8s_component }}"
-        #     profile: client
-        #     ca: root
-        #   import_role:
-        #     name: k8s
-        #     tasks_from: k8s-certificate-template.yaml
+        - name: CREATE CERT <{{ k8s_component }}> CLIENT.
+          vars:
+            csr:
+              CN: "system:{{ k8s_component }}"
+              names:
+                - O: "system:{{ k8s_component }}"
+            profile: client
+            ca: root
+          import_role:
+            name: k8s
+            tasks_from: k8s-certificate-template.yaml
       tags:
         - ssl_kube_controller_manager
         

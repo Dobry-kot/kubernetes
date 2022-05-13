@@ -16,4 +16,7 @@ KUBELET_HOSTNAME="--hostname-override={{ inventory_hostname }}"
 KUBELET_ARGS="
 {% for arg in kubelet_args %}
     {{ arg }}
-{% endfor %}"
+{% endfor %}
+{% if cloud_provider | default(false) | bool %}
+    - --cloud-provider=external
+{% endif %}"

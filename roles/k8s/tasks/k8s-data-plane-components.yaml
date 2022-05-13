@@ -8,8 +8,6 @@
     - /etc/cni/net.d
     - /opt/cni/bin
     - /var/lib/kubelet
-    - /var/lib/kubernetes
-    - /var/run/kubernetes
     - /root/containerd
   loop_control:
       loop_var: k8s_component_path

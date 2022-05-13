@@ -1,6 +1,4 @@
 kube_controller_manager_args:
-    
-    
     - --bind-address=0.0.0.0
     - --secure-port=10257
     - --allocate-node-cidrs=true

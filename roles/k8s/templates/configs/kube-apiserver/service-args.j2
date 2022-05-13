@@ -23,6 +23,9 @@ KUBE_API_ARGS="
     --service-account-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-kubelet-client.pem
     --service-account-signing-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-kubelet-client-key.pem
     --etcd-servers={{ etcd_server }}
+{% if cloud_provider | default(false) | bool %}
+    - --cloud-provider=external
+{% endif %}
 {% for arg in kube_apiserver_args %}
     {{ arg }}
 {% endfor %}"

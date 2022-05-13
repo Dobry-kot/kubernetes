@@ -1,0 +1,26 @@
+---
+- name: Create and apply manifests for Nginx Routers
+  hosts: masters,workers
+  tasks:
+    - name: SETUP COMPONENTS.
+      block:
+        - name: INSTALL BASIC COMPONENTS.
+          import_role:
+            name: packages
+            tasks_from: update-repo.yaml
+          tags:
+            - basic
+
+        - name: INSTALL BASIC COMPONENTS.
+          import_role:
+            name: packages
+            tasks_from: basic.yaml
+          tags:
+            - basic
+
+        - name: SETUP BASIC NETWORK.
+          import_role:
+            name: network
+            tasks_from: basic.yaml
+          tags:
+            - basic_network

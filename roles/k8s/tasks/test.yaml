@@ -1,8 +1,0 @@
-
-- name: SETUP COMPONENTS.
-  vars:
-    group_names:
-      - 1
-      - 2
-  debug:
-    msg: "{{ 'node-role.kubernetes.io/' + group_names | join(',node-role.kubernetes.io/') }}"

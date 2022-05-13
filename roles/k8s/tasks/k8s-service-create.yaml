@@ -18,7 +18,7 @@
           ansible.builtin.systemd:
             daemon_reload: yes
 
-        - name: RESTART SERVICE {{ serive_changed.service_name }}.
+        - name: RESTART SERVICE <{{ k8s_component }}>.
           service:
             name: "{{ serive_changed.service_name }}"
             state: "{{ service_state | default('restarted') }}"
