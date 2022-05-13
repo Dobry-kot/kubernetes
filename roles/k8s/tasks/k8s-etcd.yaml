@@ -20,8 +20,8 @@
         state: directory
         mode: '0775'
       loop:
-        - /etc/kubernetes/{{ k8s_component }}
-        - /pki/certs/{{ k8s_component }}
+        - "{{ default_path }}/{{ k8s_component }}"
+        - "{{ pki_path_certs }}/{{ k8s_component }}"
       loop_control:
           loop_var: k8s_component_path
           
@@ -39,6 +39,8 @@
           delegate_to: "{{ groups.masters[0] }}"
 
         - name: DELIVERY CA.
+          vars:
+            ca_new: true
           import_role:
             name: k8s
             tasks_from: k8s-certificates-ca-delivery.yaml

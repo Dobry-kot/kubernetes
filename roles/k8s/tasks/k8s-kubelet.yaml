@@ -1,7 +1,7 @@
 ---
-- name: SETUP KUBE-CONTROLLER-MANGER.
+- name: SETUP KUBE-SCHEDULER.
   vars:
-    k8s_component: kube-controller-manager
+    k8s_component: kubelet
   block:
     - name: DOWNLOAD BASIC BINARY K8S-COMPONENTS.
       get_url:
@@ -20,69 +20,51 @@
         state: directory
         mode: '0775'
       loop:
-        - "{{ default_path }}/{{ k8s_component }}"
+        - "{{ default_path_kubelet }}"
         - "{{ pki_path_certs }}/{{ k8s_component }}"
       loop_control:
           loop_var: k8s_component_path
 
     - name: SSL BLOCK.
       block:
-        - name: CREATE CERT <{{ k8s_component }}> SERVER.
+        - name: CREATE CERT <{{ k8s_component }}> CLIENT.
           vars:
-            hosts_list: 
-              - "127.0.0.1"
-              - "127.0.1.1"
-              - "127.0.1.6"
-              - "localhost"
-              - "{{ k8s_component }}.svc"
-              - "{{ ansible_default_ipv4.address }}"
-              - "{{ inventory_hostname }}"
             csr:
-              CN: "system:{{ k8s_component }}-server"
+              CN: "system:node:{{ inventory_hostname }}"
               names:
-                - O: "system:{{ k8s_component }}"
-              hosts: "{{ hosts_list + groups.masters }}"
-            profile: server
+                - O: "system:nodes"
+            profile: client
             ca: root
           import_role:
             name: k8s
             tasks_from: k8s-certificate-template.yaml
-
-        # - name: CREATE CERT <{{ k8s_component }}> CLIENT.
-        #   vars:
-        #     csr:
-        #       CN: "system:{{ k8s_component }}"
-        #       names:
-        #         - O: "system:{{ k8s_component }}"
-        #     profile: client
-        #     ca: root
-        #   import_role:
-        #     name: k8s
-        #     tasks_from: k8s-certificate-template.yaml
       tags:
-        - ssl_kube_controller_manager
+        - ssl_kubelet
         
     - name: COPY CONFIGS.
       vars:
-        kubeconfig_cert: system:{{ k8s_component }}
+        kubeconfig_cert: system:node:{{ inventory_hostname }}
       ansible.builtin.template:
         src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
-        dest: "{{ config.path }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
+        dest: "{{ config.path }}/{{ config.name.split('.j2')[0] }}"
         owner: root
         group: root
         mode: '0775'
       loop:
         - name: kubeconfig.j2
-          path: /etc/kubernetes
+          path: /var/lib/kubelet
         - name: config.j2
-          path: /etc/kubernetes
+          path: /var/lib/kubelet
+        - name: config.yaml.j2
+          path: /var/lib/kubelet
+          folder: "{{ k8s_component }}"
         - name: service-args.j2
-          path: /etc/kubernetes
+          path: /var/lib/kubelet
           folder: "{{ k8s_component }}"
       loop_control:
           loop_var: config
       tags:
-        - kube_controller_manager_service_update
+        - kubelet_service_update
 
     - name: ADD NEW SERVICES.
       vars:
@@ -92,4 +74,4 @@
         name: k8s
         tasks_from: k8s-service-create.yaml
       tags:
-        - kube_controller_manager_service_update
+        - kubelet_service_update

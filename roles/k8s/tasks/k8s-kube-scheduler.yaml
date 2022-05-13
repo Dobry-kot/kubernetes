@@ -20,8 +20,8 @@
         state: directory
         mode: '0775'
       loop:
-        - /etc/kubernetes/{{ k8s_component }}
-        - /pki/certs/{{ k8s_component }}
+        - "{{ default_path }}/{{ k8s_component }}"
+        - "{{ pki_path_certs }}/{{ k8s_component }}"
       loop_control:
           loop_var: k8s_component_path
 

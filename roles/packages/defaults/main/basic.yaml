@@ -4,3 +4,10 @@ basic_packages:
   - irqbalance
   - atop
   - net-tools
+  - socat 
+  - conntrack
+  - ipset
+  - python3-pip
+
+basic_pip_packages:
+  - kubernetes

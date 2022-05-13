@@ -1,25 +1,24 @@
 [Unit]
-Description=Kubernetes Kubelet
-Documentation=https://github.com/kubernetes/kubernetes
+Description=Kubernetes Kubelet Server
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 After=containerd.service
 Requires=containerd.service
 
 [Service]
+WorkingDirectory=/var/lib/kubelet
+EnvironmentFile=-/var/lib/kubelet/config
+EnvironmentFile=-/var/lib/kubelet/service-args
 ExecStart=/usr/bin/kubelet \
-  --config=/var/lib/kubelet/kubelet-config.yaml \
-  --container-runtime=remote \
-{% if basic_cri == 'cri-o' %}
-  --container-runtime-endpoint=unix:///var/run/crio/crio.sock \
-{% elif basic_cri == 'containerd' %}
-  --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \
-{% endif %}
-  --image-pull-progress-deadline=2m \
-  --kubeconfig=/var/lib/kubelet/kubeconfig \
-  --network-plugin=cni \
-  --register-node=true \
-  --v=2
+            $KUBE_LOGTOSTDERR \
+            $KUBE_LOG_LEVEL \
+            $KUBELET_API_SERVER \
+            $KUBELET_ADDRESS \
+            $KUBELET_PORT \
+            $KUBELET_HOSTNAME \
+            $KUBE_ALLOW_PRIV \
+            $KUBELET_ARGS
 Restart=on-failure
-RestartSec=5
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target

@@ -16,6 +16,15 @@
           import_role:
             name: packages
             tasks_from: basic.yaml
+          tags:
+            - basic
+
+        - name: SETUP BASIC NETWORK.
+          import_role:
+            name: network
+            tasks_from: basic.yaml
+          tags:
+            - basic_network
 
         - name: SETUP K8S CONTROL-PLANE COMPONENTS.
           import_role:

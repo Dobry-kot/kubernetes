@@ -13,7 +13,7 @@ kube_apiserver_args:
     - --allow-privileged=true
     - --authorization-mode=Node,RBAC
     - --bind-address=0.0.0.0
-    - --enable-admission-plugins=NodeRestriction
+    - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota,AlwaysPullImages,NodeRestriction
     - --enable-bootstrap-token-auth=true
     - --runtime-config=api/all=true
     - --enable-aggregator-routing=true 

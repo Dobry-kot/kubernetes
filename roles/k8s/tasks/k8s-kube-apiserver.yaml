@@ -20,14 +20,15 @@
         state: directory
         mode: '0775'
       loop:
-        - /etc/kubernetes/{{ k8s_component }}
-        - /pki/certs/{{ k8s_component }}
+        - "{{ default_path }}/{{ k8s_component }}"
+        - "{{ pki_path_certs }}/{{ k8s_component }}"
       loop_control:
           loop_var: k8s_component_path
 
     - name: NEW <{{ component }}> CA.
       vars:
         component_local: front-proxy
+        ca_new: true
       block:
         - name: CREATE <{{ component }}> CA.
           vars:
@@ -78,6 +79,10 @@
           - "127.0.1.1"
           - "127.0.1.6"
           - "localhost"
+          - "kubernetes"
+          - "kubernetes.default"
+          - "kubernetes.default.svc"
+          - "kubernetes.default.svc.cluster"
           - "kubernetes.default.svc.cluster.local"
           - "{{ ansible_default_ipv4.address }}"
           - "{{ cluster_api_ip }}"
@@ -87,7 +92,7 @@
           CN: "system:{{ k8s_component }}-server"
           names:
             - O: "system:{{ k8s_component }}"
-          hosts: "{{ hosts_list + groups.masters }}"
+          hosts: "{{ hosts_list }}"
         profile: server
         ca: root
       import_role:
@@ -105,7 +110,15 @@
       import_role:
         name: k8s
         tasks_from: k8s-certificate-template.yaml
-          
+      delegate_to: "{{ groups.masters[0] }}"
+
+    - name: DELIVERY CERTS.
+      vars:
+        patterns: "system:kube-apiserver-kubelet-client*"
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificates-ca-delivery.yaml
+
     - name: COPY CONFIGS.
       vars:
         default_path: /etc/kubernetes

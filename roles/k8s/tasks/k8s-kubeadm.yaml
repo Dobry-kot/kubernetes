@@ -1,0 +1,66 @@
+---
+- name: SETUP KUBE-APISERVER.
+  vars:
+    k8s_component: kubeadm
+  block:
+    - name: DOWNLOAD BASIC BINARY K8S-COMPONENTS.
+      get_url:
+        url: "{{ k8s_component_bin.url }}"
+        dest: "{{ k8s_component_bin.path }}"
+        mode: 0775
+      loop:
+        - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/{{ arch }}/{{ k8s_component }}
+          path: /usr/bin/
+      loop_control:
+          loop_var: k8s_component_bin
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: "{{ kubeadm_component_path }}"
+        state: directory
+        mode: '0775'
+      loop:
+        - "/etc/kubernetes/kubeadm/manifests"
+      loop_control:
+          loop_var: kubeadm_component_path
+
+    - name: COPY CA CONTENT IN VAR. 
+      ansible.builtin.slurp:
+        src: "{{ pki_path_ca }}/root-ca.pem"
+      register: ca_content
+      delegate_to: "{{ groups.masters[0] }}"
+
+    - set_fact:
+        list_manifests:
+          - name: manifests/cm:kubeadm-config.yaml.j2
+          - name: manifests/cm:kubelet-config.yaml.j2
+          - name: manifests/cm:cluster-info.yaml.j2
+          - name: manifests/clusterrole:kubeadm:get-nodes.yaml.j2
+          - name: manifests/role:kubeadm:bootstrap-signer-clusterinfo .yaml.j2
+          - name: manifests/role:kubeadm:kubelet-config.yaml.j2
+          - name: manifests/role:kubeadm:nodes-kubeadm-config.yaml.j2
+
+    - name: COPY CONFIGS.
+      ansible.builtin.template:
+        src: "configs/{{ config.folder | default( k8s_component ) }}/{{ config.name }}"
+        dest: "{{ config.path | default(default_path) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
+        owner: root
+        group: root
+        mode: '0775'
+      loop: "{{ list_manifests }}"
+      loop_control:
+          loop_var: config
+      tags:
+        - kube_apiserver_service_update
+
+    - name: APPLY MANIFESTS.
+      kubernetes.core.k8s:
+        state: present
+        template:
+          - path: 'configs/{{k8s_component}}/{{ k8s_manifest.name }}'
+        kubeconfig: "{{ default_path }}/kube-apiserver/kubeconfig"
+      loop: "{{ list_manifests }}"
+      loop_control:
+        loop_var: k8s_manifest
+      delegate_to: "{{ groups.masters[0] }}"
+      when: inventory_hostname == groups.masters[0]

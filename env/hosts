@@ -2,12 +2,10 @@
 bastion ansible_host=localhost
 
 [masters]
-cl11erbm03uhlfvrl4tp-uzav ansible_host=51.250.12.226
-cl11erbm03uhlfvrl4tp-yxox ansible_host=51.250.1.84
-cl11erbm03uhlfvrl4tp-ufow ansible_host=51.250.1.238
+cl1eghk4scmb04vsd205-ybyp ansible_host=51.250.68.214
+cl1eghk4scmb04vsd205-uvef ansible_host=51.250.86.17
+cl1eghk4scmb04vsd205-ahiq ansible_host=51.250.82.99
 
-[masters:vars]
-advertise_address=1.1.1.1
 
 [workers]
 
