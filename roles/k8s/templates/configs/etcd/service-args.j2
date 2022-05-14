@@ -1,0 +1,14 @@
+# The following values are used to configure the kubernetes api-server
+#
+# Add your own!
+
+{% set list_etcd = [] %}
+{% for i in groups.masters %}
+{{- list_etcd.append('https://{server}:2379'.format(server=groups.masters[loop.index-1])) }}
+{% endfor %}
+{% set etcd_server = ','.join(list_etcd) %}
+
+ETCD_ARGS="
+{% for arg in etcd_args %}
+    {{ arg }}
+{% endfor %}"

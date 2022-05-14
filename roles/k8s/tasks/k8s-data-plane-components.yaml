@@ -1,85 +1,86 @@
+- block:
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: "{{ k8s_component_path }}"
+        state: directory
+        mode: '0775'
+      loop:
+        - /etc/cni/net.d
+        - /opt/cni/bin
+        - /var/lib/kubelet
+        - /root/containerd
+      loop_control:
+          loop_var: k8s_component_path
 
-- name: Create a directory if it does not exist
-  ansible.builtin.file:
-    path: "{{ k8s_component_path }}"
-    state: directory
-    mode: '0775'
-  loop:
-    - /etc/cni/net.d
-    - /opt/cni/bin
-    - /var/lib/kubelet
-    - /root/containerd
-  loop_control:
-      loop_var: k8s_component_path
+    - name: DOWNLOAD BASIC TAR K8S-COMPONENTS.
+      ansible.builtin.unarchive:
+        src: "{{ k8s_component_tar.url }}"
+        dest: "{{ k8s_component_tar.path }}"
+        remote_src: yes
+      loop:
+        - url: https://github.com/kubernetes-sigs/cri-tools/releases/download/v{{ cri_tool_version }}/crictl-v{{ cri_tool_version }}-linux-amd64.tar.gz
+          path: /usr/bin/
+        - url: https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/containerd-{{ containerd_version }}-linux-amd64.tar.gz
+          path: /root/containerd
+        - url: https://github.com/containernetworking/plugins/releases/download/v{{ cni_plugin }}/cni-plugins-linux-amd64-v{{ cni_plugin }}.tgz
+          path: /opt/cni/bin/
+      loop_control:
+          loop_var: k8s_component_tar
 
-- name: DOWNLOAD BASIC TAR K8S-COMPONENTS.
-  ansible.builtin.unarchive:
-    src: "{{ k8s_component_tar.url }}"
-    dest: "{{ k8s_component_tar.path }}"
-    remote_src: yes
-  loop:
-    - url: https://github.com/kubernetes-sigs/cri-tools/releases/download/v{{ cri_tool_version }}/crictl-v{{ cri_tool_version }}-linux-amd64.tar.gz
-      path: /usr/bin/
-    - url: https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/containerd-{{ containerd_version }}-linux-amd64.tar.gz
-      path: /root/containerd
-    - url: https://github.com/containernetworking/plugins/releases/download/v{{ cni_plugin }}/cni-plugins-linux-amd64-v{{ cni_plugin }}.tgz
-      path: /opt/cni/bin/
-  loop_control:
-      loop_var: k8s_component_tar
+    - name: DOWNLOAD BASIC BINARY K8S-COMPONENTS.
+      get_url:
+        url: "{{ k8s_component_bin.url }}"
+        dest: "{{ k8s_component_bin.path }}"
+        mode: 0775
+      loop:
+        - url: https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/runc.amd64
+          path: /usr/bin/runc
+        - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/amd64/kubectl
+          path: /usr/bin/
+      loop_control:
+          loop_var: k8s_component_bin
+      tags:
+        - update_pkg
 
-- name: DOWNLOAD BASIC BINARY K8S-COMPONENTS.
-  get_url:
-    url: "{{ k8s_component_bin.url }}"
-    dest: "{{ k8s_component_bin.path }}"
-    mode: 0775
-  loop:
-    - url: https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/runc.amd64
-      path: /usr/bin/runc
-    - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/amd64/kubectl
-      path: /usr/bin/
-  loop_control:
-      loop_var: k8s_component_bin
+    - name: FIND ALL CONTAINERD COMPONENTS. 
+      find:
+        paths: /root/containerd/bin/
+      register: containerd_components
+      tags:
+        - update_containerd
+
+    - name: COPY CONTAINERD COMPONENT BY FOLDERS.
+      copy:
+        src: "{{ containerd_component.path }}"
+        dest: /usr/bin/
+        mode: 0775
+        remote_src: true
+      loop: "{{ containerd_components.files }}"
+      loop_control:
+        loop_var: containerd_component
+      tags:
+        - update_containerd
+
+    - name: COPY BASIC CNI CONFIG.
+      ansible.builtin.template:
+        src: configs/cni-plugin/basic/99-loopback.conf
+        dest: /etc/cni/net.d/99-loopback.conf
+        owner: root
+        group: root
+        mode: '0775'
+
+    - name: ADD NEW SERVICES.
+      vars:
+        services_list:
+          - containerd.service
+      import_role:
+        name: k8s
+        tasks_from: k8s-service-create.yaml
+      when: master_scheduled | bool
   tags:
-    - update_pkg
+    - new
 
-- name: FIND ALL CONTAINERD COMPONENTS. 
-  find:
-    paths: /root/containerd/bin/
-  register: containerd_components
-  tags:
-    - update_containerd
-
-- name: COPY CONTAINERD COMPONENT BY FOLDERS.
-  copy:
-    src: "{{ containerd_component.path }}"
-    dest: /usr/bin/
-    mode: 0775
-    remote_src: true
-  loop: "{{ containerd_components.files }}"
-  loop_control:
-    loop_var: containerd_component
-  tags:
-    - update_containerd
-
-- name: COPY BASIC CNI CONFIG.
-  ansible.builtin.template:
-    src: configs/cni-plugin/basic/99-loopback.conf
-    dest: /etc/cni/net.d/99-loopback.conf
-    owner: root
-    group: root
-    mode: '0775'
-
-- name: ADD NEW SERVICES.
-  vars:
-    services_list:
-      - containerd.service
-      # - kubelet.service
-  import_role:
-    name: k8s
-    tasks_from: k8s-service-create.yaml
-  when: master_scheduled | bool
-
-- name: SETUP KUBEADM.
+- name: SETUP KUBELET.
   import_role:
     name: k8s
     tasks_from: k8s-kubelet.yaml

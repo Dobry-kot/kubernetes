@@ -5,6 +5,12 @@ cni_plugin:           "1.1.1"
 runc_version:         "1.0.0-rc93"
 cri_tool_version:     "1.23.0"
 cfssl_version:        "1.6.1"
-etcd_version:         "3.5.4"
+etcd_build:
+  bin: 
+    path: https://github.com/etcd-io/etcd/releases/download
+    version: "3.5.4"
+  image: 
+    path: k8s.gcr.io/etcd
+    version: 3.5.3-0
 basic_cri:            "containerd"
 arch:                 "amd64"          

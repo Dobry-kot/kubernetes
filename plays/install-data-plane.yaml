@@ -1,5 +1,5 @@
 ---
-- name: Create and apply manifests for Nginx Routers
+- name: SETUP K8S DATA-PLANE COMPONENTS FOR WORKERS.
   hosts: workers
   tasks:
     - name: SETUP COMPONENTS.
@@ -11,7 +11,7 @@
           tags:
             - data_plane
 
-- name: Create and apply manifests for Nginx Routers
+- name: SETUP K8S DATA-PLANE COMPONENTS FOR MASTERS.
   hosts: masters
   tasks:
     - name: SETUP COMPONENTS.

@@ -1,0 +1,17 @@
+- name: NEW <{{ component }}> CA.
+  block:
+    - name: CREATE <{{ component }}> CA.
+      vars:
+        csr:
+          CN: "{{ component }}-ca"
+          names:
+            - O: "{{ component }}-ca"
+      import_role:
+        name: k8s
+        tasks_from: k8s-certificates-ca-create.yaml
+      delegate_to: "{{ groups.masters[0] }}"
+
+    - name: DELIVERY CA.
+      import_role:
+        name: k8s
+        tasks_from: k8s-certificates-ca-delivery.yaml

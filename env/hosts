@@ -3,11 +3,14 @@ bastion ansible_host=localhost
 
 [masters]
 cl15tk4od57v58kegou7-esac ansible_host=51.250.87.176
-cl15tk4od57v58kegou7-uvuh ansible_host=51.250.88.178
-cl15tk4od57v58kegou7-aqop ansible_host=51.250.77.118
+cl15tk4od57v58kegou7-uvuh ansible_host=51.250.70.241
+cl15tk4od57v58kegou7-aqop ansible_host=51.250.78.145
 
 
 [workers]
+; cl1uq73r47ngaj83i7ec-ebyk ansible_host=51.250.66.63
+; cl1uq73r47ngaj83i7ec-ebos ansible_host=51.250.68.205
+; cl1uq73r47ngaj83i7ec-udyk ansible_host=51.250.87.27
 
 [all:children]
 bastion

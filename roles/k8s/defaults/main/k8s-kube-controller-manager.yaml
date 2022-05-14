@@ -31,3 +31,4 @@ kube_controller_manager_args:
     - --authorization-always-allow-paths=/healthz,/metrics
     - --feature-gates=RotateKubeletServerCertificate=true
     - --v=2
+    - --cluster-signing-duration=1h

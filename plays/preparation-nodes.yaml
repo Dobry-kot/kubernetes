@@ -1,5 +1,5 @@
 ---
-- name: Create and apply manifests for Nginx Routers
+- name: SETUP BASIC SYSTEM.
   hosts: masters,workers
   tasks:
     - name: SETUP COMPONENTS.

@@ -25,28 +25,13 @@
       loop_control:
           loop_var: k8s_component_path
 
-    - name: NEW <{{ component }}> CA.
+    - name: CREATE NEW CA <{{ component_local }}>.
       vars:
         component_local: front-proxy
         ca_new: true
-      block:
-        - name: CREATE <{{ component }}> CA.
-          vars:
-            csr:
-              CN: "{{ component }}-ca"
-              names:
-                - O: "{{ component }}-ca"
-          import_role:
-            name: k8s
-            tasks_from: k8s-certificates-ca-create.yaml
-          delegate_to: "{{ groups.masters[0] }}"
-
-        - name: DELIVERY CA.
-          import_role:
-            name: k8s
-            tasks_from: k8s-certificates-ca-delivery.yaml
-      tags:
-        - ssl_api
+      import_role:
+        name: k8s
+        tasks_from: k8s-certificates-ca-new.yaml
 
     - name: CREATE CERT <front-proxy> CLIENT.
       vars:
@@ -59,6 +44,26 @@
       import_role:
         name: k8s
         tasks_from: k8s-certificate-template.yaml
+
+    - name: CREATE CERT <sa> SA.
+      vars:
+        csr:
+          CN: "system:{{ k8s_component }}-sa"
+          names:
+            - O: "system:{{ k8s_component }}"
+        profile: sa
+        ca: root
+      import_role:
+        name: k8s
+        tasks_from: k8s-certificate-template.yaml
+      delegate_to: "{{ groups.masters[0] }}"
+
+    - name: DELIVERY CERTS.
+      vars:
+        patterns: "system:{{ k8s_component }}-sa*"
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificates-ca-delivery.yaml
 
     - name: CREATE CERT <etcd> CLIENT.
       vars:
@@ -110,14 +115,6 @@
       import_role:
         name: k8s
         tasks_from: k8s-certificate-template.yaml
-      delegate_to: "{{ groups.masters[0] }}"
-
-    - name: DELIVERY CERTS.
-      vars:
-        patterns: "system:kube-apiserver-kubelet-client*"
-      include_role:
-        name: k8s
-        tasks_from: k8s-certificates-ca-delivery.yaml
 
     - name: COPY CONFIGS.
       vars:

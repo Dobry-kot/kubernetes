@@ -22,6 +22,7 @@
       loop:
         - "{{ default_path_kubelet }}"
         - "{{ pki_path_certs }}/{{ k8s_component }}"
+        - "{{ static_pod_path }}"
       loop_control:
           loop_var: k8s_component_path
 

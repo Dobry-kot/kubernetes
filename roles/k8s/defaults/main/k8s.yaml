@@ -1,2 +1,3 @@
 master_scheduled: true
 cloud_provider: false
+setup_cluster_type: static-pod

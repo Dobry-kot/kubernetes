@@ -20,8 +20,8 @@ KUBE_API_ARGS="
     --proxy-client-cert-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-front-proxy-client.pem
     --proxy-client-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-front-proxy-client-key.pem
     --requestheader-client-ca-file={{ pki_path_ca }}/front-proxy-ca.pem
-    --service-account-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-kubelet-client.pem
-    --service-account-signing-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-kubelet-client-key.pem
+    --service-account-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-sa.pem
+    --service-account-signing-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-sa-key.pem
     --etcd-servers={{ etcd_server }}
 {% if cloud_provider | default(false) | bool %}
     - --cloud-provider=external
