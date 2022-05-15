@@ -1,0 +1,125 @@
+#jinja2: lstrip_blocks: "True"
+{% set list_etcd = [] %}
+{% for i in groups.masters %}
+{{- list_etcd.append('https://{server}:2379'.format(server=groups.masters[loop.index-1])) }}
+{% endfor %}
+{% set etcd_server = ','.join(list_etcd) %}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    kubeadm.kubernetes.io/kube-apiserver.advertise-address.endpoint: "{{ external_api_ip }}:6443"
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-apiserver
+    args:
+      - --etcd-servers={{ etcd_server }}
+    {% if cloud_provider | default(false) | bool %}
+      - --cloud-provider=external
+    {% endif %}
+    {% if audit_path | default(false) | bool %}
+      - --audit-log-path=/var/log/kubernetes/kube-apiserver-audit.log
+    {% endif %}
+    {% for arg in kube_apiserver_args %}
+      - {{ arg }}
+    {% endfor %}
+    image: k8s.gcr.io/kube-apiserver:v1.24.0
+    imagePullPolicy: IfNotPresent
+    livenessProbe:
+      failureThreshold: 8
+      httpGet:
+        host: 127.0.0.1
+        path: /livez
+        port: 6443
+        scheme: HTTPS
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 15
+    name: kube-apiserver
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        host: 127.0.0.1
+        path: /readyz
+        port: 6443
+        scheme: HTTPS
+      periodSeconds: 1
+      timeoutSeconds: 15
+    resources:
+      requests:
+        cpu: 250m
+    startupProbe:
+      failureThreshold: 24
+      httpGet:
+        host: 127.0.0.1
+        path: /livez
+        port: 6443
+        scheme: HTTPS
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 15
+    volumeMounts:
+    - mountPath: /etc/ssl/certs
+      name: ca-certs
+      readOnly: true
+    - mountPath: /etc/ca-certificates
+      name: etc-ca-certificates
+      readOnly: true
+    - mountPath: /etc/kubernetes/pki/certs
+      name: k8s-certs
+      readOnly: true
+    - mountPath: /etc/kubernetes/pki/ca
+      name: k8s-ca
+      readOnly: true
+    - mountPath: /etc/kubernetes/kube-apiserver
+      name: k8s-kube-apiserver-configs
+      readOnly: true
+    - mountPath: /usr/local/share/ca-certificates
+      name: usr-local-share-ca-certificates
+      readOnly: true
+    - mountPath: /usr/share/ca-certificates
+      name: usr-share-ca-certificates
+      readOnly: true
+  hostNetwork: true
+  priorityClassName: system-node-critical
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  volumes:
+  - hostPath:
+      path: /etc/ssl/certs
+      type: DirectoryOrCreate
+    name: ca-certs
+  - hostPath:
+      path: /etc/ca-certificates
+      type: DirectoryOrCreate
+    name: etc-ca-certificates
+  - hostPath:
+      path: /etc/kubernetes/pki/certs
+      type: DirectoryOrCreate
+    name: k8s-certs
+  - hostPath:
+      path: /etc/kubernetes/pki/ca
+      type: DirectoryOrCreate
+    name: k8s-ca
+  - hostPath:
+      path: /etc/kubernetes/kube-apiserver
+      type: DirectoryOrCreate
+    name: k8s-kube-apiserver-configs
+  - hostPath:
+      path: /usr/local/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-local-share-ca-certificates
+  - hostPath:
+      path: /usr/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-share-ca-certificates
+status: {}

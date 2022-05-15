@@ -26,6 +26,9 @@ KUBE_API_ARGS="
 {% if cloud_provider | default(false) | bool %}
     - --cloud-provider=external
 {% endif %}
+{% if audit_path | default(false) | bool %}
+    - --audit-log-path=/var/log/kubernetes/kube-apiserver-audit.log
+{% endif %}
 {% for arg in kube_apiserver_args %}
     {{ arg }}
 {% endfor %}"

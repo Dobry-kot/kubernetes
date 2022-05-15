@@ -1,0 +1,122 @@
+#jinja2: lstrip_blocks: "True"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-controller-manager
+    tier: control-plane
+  name: kube-controller-manager
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+      - kube-controller-manager
+    args:
+      - --tls-cert-file={{ pki_path_certs }}/{{ k8s_component }}/system:kube-controller-manager-server.pem 
+      - --tls-private-key-file={{ pki_path_certs }}/{{ k8s_component }}/system:kube-controller-manager-server-key.pem 
+      - --client-ca-file={{ pki_path_ca }}/root-ca.pem 
+      - --cluster-signing-cert-file={{ pki_path_ca }}/root-ca.pem 
+      - --cluster-signing-key-file={{ pki_path_ca }}/root-ca-key.pem 
+      - --requestheader-client-ca-file={{ pki_path_ca }}/front-proxy-ca.pem 
+      - --service-account-private-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-kubelet-client-key.pem 
+      - --kubeconfig=/etc/kubernetes/{{ k8s_component }}/kubeconfig 
+      - --authentication-kubeconfig=/etc/kubernetes/{{ k8s_component }}/kubeconfig 
+      - --authorization-kubeconfig=/etc/kubernetes/{{ k8s_component }}/kubeconfig
+      - --root-ca-file={{ pki_path_ca }}/root-ca.pem
+    {% if cloud_provider | default(false) | bool %}
+      - --cloud-provider=external
+    {% endif %}
+    {% for arg in kube_controller_manager_args %}
+      - {{ arg }}
+    {% endfor %}
+    image: k8s.gcr.io/kube-controller-manager:v1.24.0
+    imagePullPolicy: IfNotPresent
+    livenessProbe:
+      failureThreshold: 8
+      httpGet:
+        host: 127.0.0.1
+        path: /healthz
+        port: 10257
+        scheme: HTTPS
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 15
+    name: kube-controller-manager
+    resources:
+      requests:
+        cpu: 200m
+    startupProbe:
+      failureThreshold: 24
+      httpGet:
+        host: 127.0.0.1
+        path: /healthz
+        port: 10257
+        scheme: HTTPS
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 15
+    volumeMounts:
+    - mountPath: /etc/ssl/certs
+      name: ca-certs
+      readOnly: true
+    - mountPath: /etc/ca-certificates
+      name: etc-ca-certificates
+      readOnly: true
+    - mountPath: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+      name: flexvolume-dir
+    - mountPath: /etc/kubernetes/pki/certs
+      name: k8s-certs
+      readOnly: true
+    - mountPath: /etc/kubernetes/pki/ca
+      name: k8s-ca
+      readOnly: true
+    - mountPath: /etc/kubernetes/kube-controller-manager
+      name: k8s-kube-controller-manager-configs
+      readOnly: true
+    - mountPath: /usr/local/share/ca-certificates
+      name: usr-local-share-ca-certificates
+      readOnly: true
+    - mountPath: /usr/share/ca-certificates
+      name: usr-share-ca-certificates
+      readOnly: true
+  hostNetwork: true
+  priorityClassName: system-node-critical
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  volumes:
+  - hostPath:
+      path: /etc/ssl/certs
+      type: DirectoryOrCreate
+    name: ca-certs
+  - hostPath:
+      path: /etc/ca-certificates
+      type: DirectoryOrCreate
+    name: etc-ca-certificates
+  - hostPath:
+      path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+      type: DirectoryOrCreate
+    name: flexvolume-dir
+  - hostPath:
+      path: /etc/kubernetes/pki/certs
+      type: DirectoryOrCreate
+    name: k8s-certs
+  - hostPath:
+      path: /etc/kubernetes/pki/ca
+      type: DirectoryOrCreate
+    name: k8s-ca
+  - hostPath:
+      path: /etc/kubernetes/kube-controller-manager
+      type: DirectoryOrCreate
+    name: k8s-kube-controller-manager-configs
+  - hostPath:
+      path: /usr/local/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-local-share-ca-certificates
+  - hostPath:
+      path: /usr/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-share-ca-certificates
+status: {}

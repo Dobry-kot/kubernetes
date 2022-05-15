@@ -29,7 +29,7 @@
       vars:
         component_local: front-proxy
         ca_new: true
-      import_role:
+      include_role:
         name: k8s
         tasks_from: k8s-certificates-ca-new.yaml
 
@@ -41,7 +41,7 @@
             - O: "system:masters"
         profile: client
         ca: front-proxy
-      import_role:
+      include_role:
         name: k8s
         tasks_from: k8s-certificate-template.yaml
 
@@ -53,10 +53,11 @@
             - O: "system:{{ k8s_component }}"
         profile: sa
         ca: root
-      import_role:
+      include_role:
         name: k8s
         tasks_from: k8s-certificate-template.yaml
-      delegate_to: "{{ groups.masters[0] }}"
+        apply:
+          delegate_to: "{{ groups.masters[0] }}"
 
     - name: DELIVERY CERTS.
       vars:
@@ -73,7 +74,7 @@
             - O: "system:masters"
         profile: client
         ca: etcd
-      import_role:
+      include_role:
         name: k8s
         tasks_from: k8s-certificate-template.yaml
 
@@ -100,7 +101,7 @@
           hosts: "{{ hosts_list }}"
         profile: server
         ca: root
-      import_role:
+      include_role:
         name: k8s
         tasks_from: k8s-certificate-template.yaml
 
@@ -112,7 +113,7 @@
             - O: "system:masters"
         profile: client
         ca: root
-      import_role:
+      include_role:
         name: k8s
         tasks_from: k8s-certificate-template.yaml
 
@@ -144,8 +145,30 @@
       vars:
         services_list:
           - "{{ k8s_component }}.service"
-      import_role:
+      include_role:
         name: k8s
         tasks_from: k8s-service-create.yaml
+        apply:
+          tags:
+            - kube_apiserver_service_update
       tags:
         - kube_apiserver_service_update
+      when: setup_cluster_type == 'service'
+
+    - name: COPY MANIFESTS.
+      vars:
+        default_path: /etc/kubernetes
+      ansible.builtin.template:
+        src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
+        dest: "{{ config.path | default(default_path) }}/manifests/{{ config.name.split('.j2')[0] }}"
+        owner: root
+        group: root
+        mode: '0775'
+      loop:
+        - name: kube-apiserver.yaml.j2
+          folder: "{{ k8s_component }}"
+      loop_control:
+          loop_var: config
+      tags:
+        - kube_apiserver_manifest_update
+      when: setup_cluster_type == 'static-pod'

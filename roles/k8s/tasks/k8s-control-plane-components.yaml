@@ -6,7 +6,6 @@
 - name: CREATE NEW CA <{{ component_local }}>.
   vars:
     ca_new: true
-    component_local: root
   import_role:
     name: k8s
     tasks_from: k8s-certificates-ca-new.yaml

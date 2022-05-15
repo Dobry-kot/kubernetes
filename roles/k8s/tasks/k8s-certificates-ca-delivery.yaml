@@ -1,14 +1,15 @@
 ---
 - name: DELIVERY BLOCK.
   vars: 
-    component: "{{ component_local | default(k8s_component) }}"
+    component: "{{ (component_local | default(k8s_component)) | default('root') }}"
     patterns_ca: '{{ component }}-ca.*,{{ component }}-ca-key.*,ca-config.json,'
-    all_patterns: '{% if (ca_new | default(false)) %}{{ patterns_ca + "," + patterns | default("") }}{% else %}{{ patterns }}{% endif %}'
+    all_patterns: '{% if (ca_new | default(false)) | bool %}{{ patterns_ca + "," + patterns | default("") }}{% else %}{{ patterns }}{% endif %}'
   block:
+
     - name: FIND ALL PEM IN <{{ groups.masters[0] }}>
       find:
         paths: "{{ pki_path_main }}"
-        patterns: "{{ all_patterns }}"
+        patterns: "{{ all_patterns.strip(',') }}"
         recurse: true
       register: finded_certs
       delegate_to: "{{ groups.masters[0] }}"

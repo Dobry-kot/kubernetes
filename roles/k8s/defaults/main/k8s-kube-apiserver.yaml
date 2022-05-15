@@ -1,10 +1,23 @@
 kube_apiserver_args:
+    - --tls-cert-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-server.pem
+    - --tls-private-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-server-key.pem
+    - --client-ca-file={{ pki_path_ca }}/root-ca.pem
+    - --etcd-cafile={{ pki_path_ca }}/etcd-ca.pem
+    - --etcd-certfile={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-etcd-client.pem
+    - --etcd-keyfile={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-etcd-client-key.pem
+    - --kubelet-client-certificate={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-kubelet-client.pem
+    - --kubelet-client-key={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-kubelet-client-key.pem
+    - --proxy-client-cert-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-front-proxy-client.pem
+    - --proxy-client-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-front-proxy-client-key.pem
+    - --requestheader-client-ca-file={{ pki_path_ca }}/front-proxy-ca.pem
+    - --service-account-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-sa.pem
+    - --service-account-signing-key-file={{ pki_path_certs }}/kube-apiserver/system:kube-apiserver-sa-key.pem
     - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
     - --kubelet-timeout=5s
     - --v=2
-    - --service-cluster-ip-range='{{ cluster_default_service_network }}'
-    - --secure-port='6443'
-    - --advertise-address='{{ external_api_ip }}'
+    - --service-cluster-ip-range={{ cluster_default_service_network }}
+    - --secure-port=6443
+    - --advertise-address={{ external_api_ip }}
     - --requestheader-allowed-names=front-proxy-client
     - --requestheader-extra-headers-prefix=X-Remote-Extra-
     - --requestheader-group-headers=X-Remote-Group
@@ -23,7 +36,6 @@ kube_apiserver_args:
     - --audit-log-maxage=30
     - --audit-log-maxbackup=10
     - --audit-log-maxsize=1000
-    - --audit-log-path=/var/log/kubernetes/kube-apiserver-audit.log
     - --audit-log-mode=batch
     - --audit-policy-file=/etc/kubernetes/kube-apiserver/audit-policy.yaml
     - --event-ttl=1h0m0s

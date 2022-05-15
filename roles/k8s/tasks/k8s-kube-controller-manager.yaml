@@ -44,7 +44,7 @@
               hosts: "{{ hosts_list + groups.masters }}"
             profile: server
             ca: root
-          import_role:
+          include_role:
             name: k8s
             tasks_from: k8s-certificate-template.yaml
 
@@ -56,7 +56,7 @@
                 - O: "system:{{ k8s_component }}"
             profile: client
             ca: root
-          import_role:
+          include_role:
             name: k8s
             tasks_from: k8s-certificate-template.yaml
       tags:
@@ -93,3 +93,22 @@
         tasks_from: k8s-service-create.yaml
       tags:
         - kube_controller_manager_service_update
+      when: setup_cluster_type == 'service'
+
+    - name: COPY MANIFESTS.
+      vars:
+        default_path: /etc/kubernetes
+      ansible.builtin.template:
+        src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
+        dest: "{{ config.path | default(default_path) }}/manifests/{{ config.name.split('.j2')[0] }}"
+        owner: root
+        group: root
+        mode: '0775'
+      loop:
+        - name: kube-controller-manager.yaml.j2
+          folder: "{{ k8s_component }}"
+      loop_control:
+          loop_var: config
+      tags:
+        - kube_controller_manager_manifest_update
+      when: setup_cluster_type == 'static-pod'

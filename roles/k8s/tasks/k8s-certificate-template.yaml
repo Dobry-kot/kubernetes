@@ -1,28 +1,33 @@
 ---
-- name: Find out what the remote machine's mounts are
-  slurp:
-    src: "{{ pki_path_certs }}/configs/{{ csr.CN }}.json"
-  register: certs_check_summ
-  failed_when: false
-
-- name: CREATE CSR <{{ csr.CN }}>.
+- name: BLOCK NEW CERT.
   vars:
-    new_csr: "{{ global.ca_csr | combine(csr) | to_json }}"
-  ansible.builtin.copy:
-    content: "{{ new_csr }}"
-    dest: "{{ pki_path_certs }}/configs/{{ csr.CN }}.json"
-  register: csr_status
-  changed_when: certs_check_summ.changed != false or 
-                certs_check_summ.content | default(false) != new_csr | b64encode
+    component: "{{ (component_local | default(k8s_component)) | default('root') }}"
+  block:
+    - name: Find out what the remote machine's mounts are
+      slurp:
+        src: "{{ pki_path_certs }}/configs/{{ csr.CN }}.json"
+      register: certs_check_summ
+      failed_when: false
 
-- name: CREATE CERT <{{ csr.CN }}>. 
-  vars:
-    ca_prefix: "{% if ca is defined %}{{ ca }}-{%else%}{% endif %}"
-  shell: >
-    cfssl gencert \
-    -ca={{ pki_path_ca }}/{{ ca_prefix }}ca.pem \
-    -ca-key={{ pki_path_ca }}/{{ ca_prefix }}ca-key.pem \
-    -config={{ pki_path_main }}/ca-config.json \
-    -profile={{ profile }} \
-    {{ pki_path_certs }}/configs/{{ csr.CN }}.json | cfssljson -bare {{ pki_path_certs }}/{{ k8s_component }}/{{ csr.CN }}
-  when: csr_status.changed | bool
+    - name: CREATE CSR <{{ csr.CN }}>.
+      vars:
+        new_csr: "{{ global.ca_csr | combine(csr) | to_json }}"
+      ansible.builtin.copy:
+        content: "{{ new_csr }}"
+        dest: "{{ pki_path_certs }}/configs/{{ csr.CN }}.json"
+      register: csr_status
+      changed_when: certs_check_summ.changed != false or 
+                    certs_check_summ.content | default(false) != new_csr | b64encode
+
+    - name: CREATE CERT <{{ csr.CN }}>. 
+      vars:
+        ca_prefix: "{% if ca is defined %}{{ ca }}-{%else%}{% endif %}"
+        ca_folder: "{{ ca_prefix.strip('-') }}"
+      shell: >
+        cfssl gencert \
+        -ca={{ pki_path_ca }}/{{ ca_prefix }}ca.pem \
+        -ca-key={{ pki_path_ca }}/{{ ca_prefix }}ca-key.pem \
+        -config={{ pki_path_certs }}/configs/ca-config.json \
+        -profile={{ profile }} \
+        {{ pki_path_certs }}/configs/{{ csr.CN }}.json | cfssljson -bare {{ pki_path_certs }}/{{ component }}/{{ csr.CN }}
+      when: csr_status.changed | bool

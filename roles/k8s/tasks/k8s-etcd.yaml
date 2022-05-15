@@ -11,14 +11,14 @@
             dest: "{{ k8s_cp_tar.path }}"
             remote_src: yes
           loop:
-            - url: "{{ etcd_build.bin.path }}/v{{ etcd_version }}/etcd-v{{ etcd_build.bin.version }}-linux-{{ arch }}.tar.gz"
+            - url: "{{ etcd_build.bin.path }}/v{{ etcd_build.bin.version }}/etcd-v{{ etcd_build.bin.version }}-linux-{{ arch }}.tar.gz"
               path: /root
           loop_control:
               loop_var: k8s_cp_tar
 
         - name: CREATE A REMOTE FILE WITH FOUND CONTENT. 
           ansible.builtin.copy:
-            src: /root/etcd-v{{ etcd_version }}-linux-amd64/{{item}}
+            src: /root/etcd-v{{ etcd_build.bin.version }}-linux-amd64/{{item}}
             dest: /usr/bin/{{ item }}
             remote_src: true
             mode: 0775
@@ -42,7 +42,8 @@
     - name: CREATE NEW CA <{{ k8s_component }}>.
       vars:
         ca_new: true
-      import_role:
+        ca: root
+      include_role:
         name: k8s
         tasks_from: k8s-certificates-ca-new.yaml
 
@@ -52,11 +53,10 @@
           - "127.0.0.1"
           - "localhost"
           - "{{ ansible_default_ipv4.address }}"
+          - "{{ inventory_hostname }}"
         csr:
           CN: "system:{{ k8s_component }}-peer"
-          names:
-            - O: "system:{{ k8s_component }}"
-          hosts: "{{ hosts_list + groups.masters }}"
+          hosts: "{{ hosts_list }}"
         profile: peer
         ca: etcd
       import_role:
@@ -69,11 +69,22 @@
           - "127.0.0.1"
           - "localhost"
           - "{{ ansible_default_ipv4.address }}"
+          - "{{ inventory_hostname }}"
         csr:
           CN: "system:{{ k8s_component }}-server"
+          hosts: "{{ hosts_list }}"
+        profile: peer
+        ca: etcd
+      import_role:
+        name: k8s
+        tasks_from: k8s-certificate-template.yaml
+
+    - name: CREATE CERT ETCD HEALHCHECK CLIENT.
+      vars:
+        csr:
+          CN: "system:{{ k8s_component }}-healthcheck-client"
           names:
-            - O: "system:{{ k8s_component }}"
-          hosts: "{{ hosts_list + groups.masters }}"
+            - O: "system:masters,"
         profile: peer
         ca: etcd
       import_role:
@@ -115,10 +126,9 @@
             - etcd_service_update
       when: setup_cluster_type == 'service'
 
-    - name: COPY CONFIGS.
+    - name: COPY MANIFESTS.
       vars:
         default_path: /etc/kubernetes
-        kubeconfig_cert: system:{{ k8s_component }}-kubelet-client
       ansible.builtin.template:
         src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
         dest: "{{ config.path | default(default_path) }}/manifests/{{ config.name.split('.j2')[0] }}"

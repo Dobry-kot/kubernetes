@@ -22,7 +22,7 @@
           service:
             name: "{{ serive_changed.service_name }}"
             state: "{{ service_state | default('restarted') }}"
-            enabled: true
+            enabled: "{{ service_enabled | default('true') }}"
           loop: "{{ service_status.results }}"
           loop_control:
               loop_var: serive_changed
