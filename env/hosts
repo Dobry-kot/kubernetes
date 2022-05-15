@@ -2,9 +2,9 @@
 bastion ansible_host=localhost
 
 [masters]
-cl15tk4od57v58kegou7-esac ansible_host=51.250.14.5
-cl15tk4od57v58kegou7-uvuh ansible_host=51.250.70.241
-cl15tk4od57v58kegou7-aqop ansible_host=51.250.78.145
+cl15tk4od57v58kegou7-esac ansible_host=51.250.15.39
+cl15tk4od57v58kegou7-uvuh ansible_host=51.250.89.89
+cl15tk4od57v58kegou7-aqop ansible_host=51.250.80.135
 
 
 [workers]

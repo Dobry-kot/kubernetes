@@ -9,7 +9,7 @@
         dest: "{{ k8s_component_bin.path }}"
         mode: 0775
       loop:
-        - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/amd64/{{ k8s_component }}
+        - url: "{{ kube_apiserver_build.bin.path }}/v{{ kube_apiserver_build.bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
           path: /usr/bin/
       loop_control:
           loop_var: k8s_component_bin
@@ -25,121 +25,156 @@
       loop_control:
           loop_var: k8s_component_path
 
-    - name: CREATE NEW CA <{{ component_local }}>.
-      vars:
-        component_local: front-proxy
-        ca_new: true
-      include_role:
-        name: k8s
-        tasks_from: k8s-certificates-ca-new.yaml
+    - name: SSL BLOCK.
+      block:
+        - name: CREATE NEW CA <{{ component_local }}>.
+          vars:
+            component_local: front-proxy
+            ca_new: true
+          include_role:
+            name: k8s
+            tasks_from: k8s-certificates-ca-new.yaml
+            apply:
+              tags:
+                - kube_apiserver_ssl
 
-    - name: CREATE CERT <front-proxy> CLIENT.
-      vars:
-        csr:
-          CN: "system:{{ k8s_component }}-front-proxy-client"
-          names:
-            - O: "system:masters"
-        profile: client
-        ca: front-proxy
-      include_role:
-        name: k8s
-        tasks_from: k8s-certificate-template.yaml
+        - name: CREATE CERT <front-proxy> CLIENT.
+          vars:
+            csr:
+              CN: "system:{{ k8s_component }}-front-proxy-client"
+              names:
+                - O: "system:masters"
+            profile: client
+            ca: front-proxy
+          include_role:
+            name: k8s
+            tasks_from: k8s-certificate-template.yaml
+            apply:
+              tags:
+                - kube_apiserver_ssl
 
-    - name: CREATE CERT <sa> SA.
-      vars:
-        csr:
-          CN: "system:{{ k8s_component }}-sa"
-          names:
-            - O: "system:{{ k8s_component }}"
-        profile: sa
-        ca: root
-      include_role:
-        name: k8s
-        tasks_from: k8s-certificate-template.yaml
-        apply:
-          delegate_to: "{{ groups.masters[0] }}"
+        - name: CREATE CERT <sa> SA.
+          vars:
+            csr:
+              CN: "system:{{ k8s_component }}-sa"
+              names:
+                - O: "system:{{ k8s_component }}"
+            profile: sa
+            ca: root
+          include_role:
+            name: k8s
+            tasks_from: k8s-certificate-template.yaml
+            apply:
+              delegate_to: "{{ groups.masters[0] }}"
+            apply:
+              tags:
+                - kube_apiserver_ssl
 
-    - name: DELIVERY CERTS.
-      vars:
-        patterns: "system:{{ k8s_component }}-sa*"
-      include_role:
-        name: k8s
-        tasks_from: k8s-certificates-ca-delivery.yaml
+        - name: DELIVERY CERTS.
+          vars:
+            patterns: "system:{{ k8s_component }}-sa*"
+          include_role:
+            name: k8s
+            tasks_from: k8s-certificates-ca-delivery.yaml
+            apply:
+              tags:
+                - kube_apiserver_ssl
 
-    - name: CREATE CERT <etcd> CLIENT.
-      vars:
-        csr:
-          CN: "system:{{ k8s_component }}-etcd-client"
-          names:
-            - O: "system:masters"
-        profile: client
-        ca: etcd
-      include_role:
-        name: k8s
-        tasks_from: k8s-certificate-template.yaml
+        - name: CREATE CERT <etcd> CLIENT.
+          vars:
+            csr:
+              CN: "system:{{ k8s_component }}-etcd-client"
+              names:
+                - O: "system:masters"
+            profile: client
+            ca: etcd
+          include_role:
+            name: k8s
+            tasks_from: k8s-certificate-template.yaml
+            apply:
+              tags:
+                - kube_apiserver_ssl
 
-    - name: CREATE CERT <{{ k8s_component }}> SERVER.
-      vars:
-        hosts_list: 
-          - "127.0.0.1"
-          - "127.0.1.1"
-          - "127.0.1.6"
-          - "localhost"
-          - "kubernetes"
-          - "kubernetes.default"
-          - "kubernetes.default.svc"
-          - "kubernetes.default.svc.cluster"
-          - "kubernetes.default.svc.cluster.local"
-          - "{{ ansible_default_ipv4.address }}"
-          - "{{ cluster_api_ip }}"
-          - "{{ external_api_ip }}"
-          - "{{ inventory_hostname }}"
-        csr:
-          CN: "system:{{ k8s_component }}-server"
-          names:
-            - O: "system:{{ k8s_component }}"
-          hosts: "{{ hosts_list }}"
-        profile: server
-        ca: root
-      include_role:
-        name: k8s
-        tasks_from: k8s-certificate-template.yaml
+        - name: CREATE CERT <{{ k8s_component }}> SERVER.
+          vars:
+            hosts_list: 
+              - "127.0.0.1"
+              - "127.0.1.1"
+              - "127.0.1.6"
+              - "localhost"
+              - "kubernetes"
+              - "kubernetes.default"
+              - "kubernetes.default.svc"
+              - "kubernetes.default.svc.cluster"
+              - "kubernetes.default.svc.cluster.local"
+              - "{{ ansible_default_ipv4.address }}"
+              - "{{ cluster_api_ip }}"
+              - "{{ external_api_ip }}"
+              - "{{ inventory_hostname }}"
+            csr:
+              CN: "system:{{ k8s_component }}-server"
+              names:
+                - O: "system:{{ k8s_component }}"
+              hosts: "{{ hosts_list }}"
+            profile: server
+            ca: root
+          include_role:
+            name: k8s
+            tasks_from: k8s-certificate-template.yaml
+            apply:
+              tags:
+                - kube_apiserver_ssl
 
-    - name: CREATE CERT <kubelet> CLIENT.
+        - name: CREATE CERT <kubelet> CLIENT.
+          vars:
+            csr:
+              CN: "system:{{ k8s_component }}-kubelet-client"
+              names:
+                - O: "system:masters"
+            profile: client
+            ca: root
+          include_role:
+            name: k8s
+            tasks_from: k8s-certificate-template.yaml
+            apply:
+              tags:
+                - kube_apiserver_ssl
+      tags:
+        - kube_apiserver_ssl
+
+    - name: LIST BASIC CONFIGS
       vars:
-        csr:
-          CN: "system:{{ k8s_component }}-kubelet-client"
-          names:
-            - O: "system:masters"
-        profile: client
-        ca: root
-      include_role:
-        name: k8s
-        tasks_from: k8s-certificate-template.yaml
+        basic_configs:
+          - name: audit-policy.yaml.j2
+            folder: "{{ k8s_component }}"
+          - name: egress-selector-configuration.yaml.j2
+            folder: "{{ k8s_component }}"
+          - name: kubeconfig.j2
+        service_configs:
+          - name: service-args.j2
+            folder: "{{ k8s_component }}"
+          - name: config.j2
+      set_fact:
+        configs_in_copy: |
+          {% if setup_cluster_type == 'service' %}
+          {{ basic_configs + service_configs }}
+          {% elif setup_cluster_type == 'static-pod' %}
+          {{ basic_configs }}
+          {% endif %}
+      tags:
+        - kube_apiserver_configs_update
 
     - name: COPY CONFIGS.
       vars:
-        default_path: /etc/kubernetes
         kubeconfig_cert: system:{{ k8s_component }}-kubelet-client
-      ansible.builtin.template:
-        src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
-        dest: "{{ config.path | default(default_path) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
-        owner: root
-        group: root
-        mode: '0775'
-      loop:
-        - name: audit-policy.yaml.j2
-          folder: "{{ k8s_component }}"
-        - name: egress-selector-configuration.yaml.j2
-          folder: "{{ k8s_component }}"
-        - name: service-args.j2
-          folder: "{{ k8s_component }}"
-        - name: config.j2
-        - name: kubeconfig.j2
-      loop_control:
-          loop_var: config
+      include_role:
+        name: k8s
+        tasks_from: k8s-copy-configs.yaml
+        apply:
+          tags:
+            - kube_apiserver_configs_update
       tags:
-        - kube_apiserver_service_update
+        - kube_apiserver_configs_update
 
     - name: ADD NEW SERVICES.
       vars:

@@ -31,7 +31,7 @@ spec:
     {% for arg in kube_controller_manager_args %}
       - {{ arg }}
     {% endfor %}
-    image: k8s.gcr.io/kube-controller-manager:v1.24.0
+    image: {{ kube_controller_manager_build.image.path }}:{{ kube_controller_manager_build.image.version }}
     imagePullPolicy: IfNotPresent
     livenessProbe:
       failureThreshold: 8

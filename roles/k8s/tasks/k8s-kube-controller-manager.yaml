@@ -9,7 +9,7 @@
         dest: "{{ k8s_component_bin.path }}"
         mode: 0775
       loop:
-        - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/amd64/{{ k8s_component }}
+        - url: "{{ kube_controller_manager_build.bin.path }}/v{{ kube_controller_manager_build.bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
           path: /usr/bin/
       loop_control:
           loop_var: k8s_component_bin
@@ -47,6 +47,9 @@
           include_role:
             name: k8s
             tasks_from: k8s-certificate-template.yaml
+            apply:
+              tags:
+                - kube_controller_manager_ssl
 
         - name: CREATE CERT <{{ k8s_component }}> CLIENT.
           vars:
@@ -59,30 +62,39 @@
           include_role:
             name: k8s
             tasks_from: k8s-certificate-template.yaml
+            apply:
+              tags:
+                - kube_controller_manager_ssl
       tags:
-        - ssl_kube_controller_manager
-        
+        - kube_controller_manager_ssl
+
+    - name: LIST BASIC CONFIGS
+      vars:
+        basic_configs:
+          - name: kubeconfig.j2
+        service_configs:
+          - name: service-args.j2
+            folder: "{{ k8s_component }}"
+          - name: config.j2
+      set_fact:
+        configs_in_copy: |
+          {% if setup_cluster_type == 'service' %}
+          {{ basic_configs + service_configs }}
+          {% elif setup_cluster_type == 'static-pod' %}
+          {{ basic_configs }}
+          {% endif %}
+
     - name: COPY CONFIGS.
       vars:
         kubeconfig_cert: system:{{ k8s_component }}
-      ansible.builtin.template:
-        src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
-        dest: "{{ config.path }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
-        owner: root
-        group: root
-        mode: '0775'
-      loop:
-        - name: kubeconfig.j2
-          path: /etc/kubernetes
-        - name: config.j2
-          path: /etc/kubernetes
-        - name: service-args.j2
-          path: /etc/kubernetes
-          folder: "{{ k8s_component }}"
-      loop_control:
-          loop_var: config
+      include_role:
+        name: k8s
+        tasks_from: k8s-copy-configs.yaml
+        apply:
+          tags:
+            - kube_controller_manager_configs_update
       tags:
-        - kube_controller_manager_service_update
+        - kube_controller_manager_configs_update
 
     - name: ADD NEW SERVICES.
       vars:

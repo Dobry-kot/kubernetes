@@ -31,7 +31,7 @@ spec:
     {% for arg in kube_apiserver_args %}
       - {{ arg }}
     {% endfor %}
-    image: k8s.gcr.io/kube-apiserver:v1.24.0
+    image: {{ kube_apiserver_build.image.path }}:{{ kube_apiserver_build.image.version }}
     imagePullPolicy: IfNotPresent
     livenessProbe:
       failureThreshold: 8

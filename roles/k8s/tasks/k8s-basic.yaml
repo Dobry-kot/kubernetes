@@ -29,10 +29,3 @@
       path: /usr/bin/cfssljson
   loop_control:
       loop_var: k8s_cp_component_bin
-
-- name: UPDATE REPOS.
-  import_role:
-    name: packages
-    tasks_from: update-repo.yaml
-  tags:
-    - update_repo

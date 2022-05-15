@@ -9,7 +9,7 @@
         dest: "{{ k8s_component_bin.path }}"
         mode: 0775
       loop:
-        - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/amd64/{{ k8s_component }}
+        - url: "{{ kubelet_build.bin.path }}/v{{ kubelet_build.bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
           path: /usr/bin/
       loop_control:
           loop_var: k8s_component_bin
@@ -36,36 +36,43 @@
                 - O: "system:nodes"
             profile: client
             ca: root
-          import_role:
+          include_role:
             name: k8s
             tasks_from: k8s-certificate-template.yaml
+            apply:
+              tags:
+                - kubelet_ssl
       tags:
-        - ssl_kubelet
+        - kubelet_ssl
         
+    - name: LIST BASIC CONFIGS
+      vars:
+      set_fact:
+        configs_in_copy:
+        - name: kubeconfig.j2
+          path: /var/lib/
+        - name: config.j2
+          path: /var/lib/
+        - name: config.yaml.j2
+          path: /var/lib/
+          folder: "{{ k8s_component }}"
+        - name: service-args.j2
+          path: /var/lib/
+          folder: "{{ k8s_component }}"
+      tags:
+        - kubelet_configs_update
+
     - name: COPY CONFIGS.
       vars:
         kubeconfig_cert: system:node:{{ inventory_hostname }}
-      ansible.builtin.template:
-        src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
-        dest: "{{ config.path }}/{{ config.name.split('.j2')[0] }}"
-        owner: root
-        group: root
-        mode: '0775'
-      loop:
-        - name: kubeconfig.j2
-          path: /var/lib/kubelet
-        - name: config.j2
-          path: /var/lib/kubelet
-        - name: config.yaml.j2
-          path: /var/lib/kubelet
-          folder: "{{ k8s_component }}"
-        - name: service-args.j2
-          path: /var/lib/kubelet
-          folder: "{{ k8s_component }}"
-      loop_control:
-          loop_var: config
+      include_role:
+        name: k8s
+        tasks_from: k8s-copy-configs.yaml
+        apply:
+          tags:
+            - kubelet_configs_update
       tags:
-        - kubelet_service_update
+        - kubelet_configs_update
 
     - name: ADD NEW SERVICES.
       vars:

@@ -1,5 +1,5 @@
 ---
-- name: SETUP KUBE-APISERVER.
+- name: SETUP KUBEADM.
   vars:
     k8s_component: kubeadm
   block:
@@ -9,7 +9,7 @@
         dest: "{{ k8s_component_bin.path }}"
         mode: 0775
       loop:
-        - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/{{ arch }}/{{ k8s_component }}
+        - url: "{{ kubeadm_build.bin.path }}/v{{ kubeadm_build.bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
           path: /usr/bin/
       loop_control:
           loop_var: k8s_component_bin
@@ -29,27 +29,41 @@
         src: "{{ pki_path_ca }}/root-ca.pem"
       register: ca_content
       delegate_to: "{{ groups.masters[0] }}"
+      tags:
+        - kubeadm_configs_update
 
-    - set_fact:
-        list_manifests:
+    - name: LIST BASIC CONFIGS
+      vars:
+      set_fact:
+        configs_in_copy:
           - name: manifests/cm:kubeadm-config.yaml.j2
+            folder: "{{ k8s_component }}"
           - name: manifests/cm:kubelet-config.yaml.j2
+            folder: "{{ k8s_component }}"
           - name: manifests/cm:cluster-info.yaml.j2
+            folder: "{{ k8s_component }}"
           - name: manifests/clusterrole:kubeadm:get-nodes.yaml.j2
+            folder: "{{ k8s_component }}"
           - name: manifests/role:kubeadm:bootstrap-signer-clusterinfo .yaml.j2
+            folder: "{{ k8s_component }}"
           - name: manifests/role:kubeadm:kubelet-config.yaml.j2
+            folder: "{{ k8s_component }}"
           - name: manifests/role:kubeadm:nodes-kubeadm-config.yaml.j2
+            folder: "{{ k8s_component }}"
+      tags:
+        - kubeadm_configs_update
 
     - name: COPY CONFIGS.
-      ansible.builtin.template:
-        src: "configs/{{ config.folder | default( k8s_component ) }}/{{ config.name }}"
-        dest: "{{ config.path | default(default_path) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
-        owner: root
-        group: root
-        mode: '0775'
-      loop: "{{ list_manifests }}"
-      loop_control:
-          loop_var: config
+      vars:
+        kubeconfig_cert: system:node:{{ inventory_hostname }}
+      include_role:
+        name: k8s
+        tasks_from: k8s-copy-configs.yaml
+        apply:
+          tags:
+            - kubeadm_configs_update
+      tags:
+        - kubeadm_configs_update
 
     - name: APPLY MANIFESTS.
       kubernetes.core.k8s:

@@ -1,24 +1,14 @@
 [Unit]
-Description=Kubernetes Kubelet Server
-Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-After=containerd.service
-Requires=containerd.service
+Description=kubelet: The Kubernetes Node Agent
+Documentation=https://kubernetes.io/docs/home/
+Wants=network-online.target
+After=network-online.target
 
 [Service]
-WorkingDirectory=/var/lib/kubelet
-EnvironmentFile=-/var/lib/kubelet/config
-EnvironmentFile=-/var/lib/kubelet/service-args
-ExecStart=/usr/bin/kubelet \
-            $KUBE_LOGTOSTDERR \
-            $KUBE_LOG_LEVEL \
-            $KUBELET_API_SERVER \
-            $KUBELET_ADDRESS \
-            $KUBELET_PORT \
-            $KUBELET_HOSTNAME \
-            $KUBE_ALLOW_PRIV \
-            $KUBELET_ARGS
-Restart=on-failure
-KillMode=process
+ExecStart=/usr/bin/kubelet
+Restart=always
+StartLimitInterval=0
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
