@@ -12,6 +12,7 @@
     - /etc/kubernetes/pki/certs/configs
     - /var/log/kubernetes
     - /etc/kubernetes/pki/certs/root
+    - /etc/kubernetes/manifests
   loop_control:
       loop_var: k8s_component_path
   tags:

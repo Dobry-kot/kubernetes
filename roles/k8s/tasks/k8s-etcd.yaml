@@ -107,7 +107,7 @@
             group: root
             mode: '0775'
           loop:
-            - name: service-args.j2
+            - name: service-args-custom.env.j2
               folder: "{{ k8s_component }}"
           loop_control:
               loop_var: config

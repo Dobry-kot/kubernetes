@@ -1,3 +1,11 @@
+- name: BASIC SETUP.
+  vars:
+    ca_new: true
+  import_role:
+    name: k8s
+    tasks_from: k8s-basic.yaml
+  tags:
+    - basic
 
 - name: CREATE NEW CA <{{ component_local }}>.
   vars:
@@ -7,6 +15,13 @@
     tasks_from: k8s-certificates-ca-new.yaml
   tags:
     - create_root_ca
+
+- name: SETUP KUBELET.
+  import_role:
+    name: k8s
+    tasks_from: k8s-kubelet.yaml
+  tags:
+    - kubelet
 
 - name: SETUP ETCD CLUSTER.
   import_role:
@@ -42,3 +57,4 @@
     tasks_from: k8s-kubeadm.yaml
   tags:
     - kubeadm
+

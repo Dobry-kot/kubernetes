@@ -1,11 +1,8 @@
-HOST1=51.250.14.5
-HOST2=51.250.70.241
-HOST3=51.250.78.145
+HOST1=51.250.4.34
+HOST2=51.250.11.11
+HOST3=51.250.69.105
 
-ssh dkot@$HOST1 'sudo rm -rf /etc/kubernetes/manifests/*'
-ssh dkot@$HOST2 'sudo rm -rf /etc/kubernetes/manifests/*'
-ssh dkot@$HOST3 'sudo rm -rf /etc/kubernetes/manifests/*'
+ssh dkot@$HOST1 'sudo rm -rf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf'
+ssh dkot@$HOST2 'sudo rm -rf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf'
+ssh dkot@$HOST3 'sudo rm -rf /etc/systemd/system/kubelet.service.d/10-kubeadm.conf'
 
-ssh dkot@$HOST1 'sudo shutdown -r now'
-ssh dkot@$HOST2 'sudo shutdown -r now'
-ssh dkot@$HOST3 'sudo shutdown -r now'

@@ -71,8 +71,9 @@
         template:
           - path: 'configs/{{k8s_component}}/{{ k8s_manifest.name }}'
         kubeconfig: "{{ default_path }}/kube-apiserver/kubeconfig"
-      loop: "{{ list_manifests }}"
+      loop: "{{ configs_in_copy }}"
       loop_control:
         loop_var: k8s_manifest
       delegate_to: "{{ groups.masters[0] }}"
+      register: status_manifests
       when: inventory_hostname == groups.masters[0]

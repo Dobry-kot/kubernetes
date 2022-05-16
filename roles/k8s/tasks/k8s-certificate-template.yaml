@@ -2,10 +2,15 @@
 - name: BLOCK NEW CERT.
   vars:
     component: "{{ (component_local | default(k8s_component)) | default('root') }}"
+    basic_cert_name: "{{ csr.CN }}"
+    cert_name: "{{ custom_cert_name | default(basic_cert_name) }}"
+    basic_cert_path: "{{ pki_path_certs }}"
+    cert_path: "{{ custom_cert_path | default(pki_path_certs) }}"
+    component_plug: "{% if custom_cert_path is defined %}{% else %}{{ component }}{% endif %}"
   block:
     - name: Find out what the remote machine's mounts are
       slurp:
-        src: "{{ pki_path_certs }}/configs/{{ csr.CN }}.json"
+        src: "{{ pki_path_certs }}/configs/{{ cert_name }}.json"
       register: certs_check_summ
       failed_when: false
 
@@ -14,7 +19,7 @@
         new_csr: "{{ global.ca_csr | combine(csr) | to_json }}"
       ansible.builtin.copy:
         content: "{{ new_csr }}"
-        dest: "{{ pki_path_certs }}/configs/{{ csr.CN }}.json"
+        dest: "{{ pki_path_certs }}/configs/{{ cert_name }}.json"
       register: csr_status
       changed_when: certs_check_summ.changed != false or 
                     certs_check_summ.content | default(false) != new_csr | b64encode
@@ -29,5 +34,5 @@
         -ca-key={{ pki_path_ca }}/{{ ca_prefix }}ca-key.pem \
         -config={{ pki_path_certs }}/configs/ca-config.json \
         -profile={{ profile }} \
-        {{ pki_path_certs }}/configs/{{ csr.CN }}.json | cfssljson -bare {{ pki_path_certs }}/{{ component }}/{{ csr.CN }}
+        {{ pki_path_certs }}/configs/{{ cert_name }}.json | cfssljson -bare {{ cert_path }}/{{ component_plug }}/{{ cert_name }}
       when: csr_status.changed | bool

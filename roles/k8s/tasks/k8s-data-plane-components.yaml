@@ -1,14 +1,17 @@
 - block:
     - name: Create a directory if it does not exist
+      vars:
+        data_plane_basic_dirs:
+          - /etc/cni/net.d
+          - /opt/cni/bin
+          - /var/lib/kubelet
+          - /root/containerd
+        all_dirs: "{{ basic_dirs + data_plane_basic_dirs }}"
       ansible.builtin.file:
         path: "{{ k8s_component_path }}"
         state: directory
         mode: '0775'
-      loop:
-        - /etc/cni/net.d
-        - /opt/cni/bin
-        - /var/lib/kubelet
-        - /root/containerd
+      loop: "{{ all_dirs }}"
       loop_control:
           loop_var: k8s_component_path
 
@@ -77,12 +80,8 @@
         name: k8s
         tasks_from: k8s-service-create.yaml
       when: master_scheduled | bool
+      tags:
+        - update_containerd
   tags:
     - new
 
-- name: SETUP KUBELET.
-  import_role:
-    name: k8s
-    tasks_from: k8s-kubelet.yaml
-  tags:
-    - kubelet

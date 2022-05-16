@@ -11,3 +11,4 @@ basic_packages:
 
 basic_pip_packages:
   - kubernetes
+  - docker-py

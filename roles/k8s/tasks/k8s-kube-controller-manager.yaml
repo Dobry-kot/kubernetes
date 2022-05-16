@@ -13,6 +13,7 @@
           path: /usr/bin/
       loop_control:
           loop_var: k8s_component_bin
+      when: setup_cluster_type == 'service'
 
     - name: Create a directory if it does not exist
       ansible.builtin.file:
@@ -73,9 +74,9 @@
         basic_configs:
           - name: kubeconfig.j2
         service_configs:
-          - name: service-args.j2
+          - name: service-args-custom.env.j2
             folder: "{{ k8s_component }}"
-          - name: config.j2
+          - name: service-args-basic.env.j2
       set_fact:
         configs_in_copy: |
           {% if setup_cluster_type == 'service' %}

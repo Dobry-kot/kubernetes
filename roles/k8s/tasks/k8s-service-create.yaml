@@ -19,10 +19,32 @@
             daemon_reload: yes
 
         - name: RESTART SERVICE <{{ k8s_component }}>.
+          vars:
+            list_k8s_components:
+              - kube-apiserver
+              - kube-controller-manager
+              - kube-scheduler
+              - etcd
+            service_enabled: | 
+              {% if setup_cluster_type == 'service' %}
+              true
+              {% elif serive_changed.service_name not in list_k8s_components  %}
+              true
+              {% else %}
+              false
+              {% endif %}
+            service_state: |-
+              {%- if setup_cluster_type == 'service' -%}
+              restarted
+              {%- elif serive_changed.service_name not in list_k8s_components  -%}
+              restarted
+              {%- else -%}
+              stopped
+              {%- endif -%}
           service:
             name: "{{ serive_changed.service_name }}"
-            state: "{{ service_state | default('restarted') }}"
-            enabled: "{{ service_enabled | default('true') }}"
+            state: "{{ service_state.strip(' ') }}"
+            enabled: "{{ service_enabled | bool }}"
           loop: "{{ service_status.results }}"
           loop_control:
               loop_var: serive_changed

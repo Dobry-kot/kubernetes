@@ -4,7 +4,7 @@ Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 After=network.target
 
 [Service]
-EnvironmentFile=-/etc/kubernetes/etcd/service-args
+EnvironmentFile=-/etc/kubernetes/etcd/service-args-custom
 
 ExecStart=/usr/bin/etcd \
 	    $ETCD_ARGS \

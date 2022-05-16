@@ -16,7 +16,7 @@
             name: packages
             tasks_from: basic.yaml
           tags:
-            - basic
+            - basic_pkg
 
         - name: SETUP BASIC NETWORK.
           import_role:

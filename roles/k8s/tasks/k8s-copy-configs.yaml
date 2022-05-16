@@ -1,10 +1,10 @@
 ---
 - name: COPY CONFIGS.
   vars:
-    default_path: /etc/kubernetes
+    dest_path: "{{ config.path | default(default_path) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
   ansible.builtin.template:
     src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
-    dest: "{{ config.path | default(default_path) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
+    dest: '{{ config.path_abs | default(dest_path) }}'
     owner: root
     group: root
     mode: '0775'

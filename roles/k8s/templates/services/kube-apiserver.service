@@ -5,8 +5,8 @@ After=network.target
 After=etcd.service
 
 [Service]
-EnvironmentFile=-/etc/kubernetes/kube-apiserver/config
-EnvironmentFile=-/etc/kubernetes/kube-apiserver/service-args
+EnvironmentFile=-/etc/kubernetes/kube-apiserver/service-args-basic
+EnvironmentFile=-/etc/kubernetes/kube-apiserver/service-args-custom
 
 ExecStart=/usr/bin/kube-apiserver \
 	    $KUBE_LOGTOSTDERR \

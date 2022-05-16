@@ -3,8 +3,8 @@ Description=Kubernetes Scheduler
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
-EnvironmentFile=-/etc/kubernetes/kube-scheduler/config
-EnvironmentFile=-/etc/kubernetes/kube-scheduler/service-args
+EnvironmentFile=-/etc/kubernetes/kube-scheduler/service-args-basic
+EnvironmentFile=-/etc/kubernetes/kube-scheduler/service-args-custom
 
 ExecStart=/usr/bin/kube-scheduler \
 	    $KUBE_LOGTOSTDERR \

@@ -6,3 +6,11 @@ pki_path_certs:       "{{ pki_path_main }}/certs"
 static_pod_path:      "{{ default_path }}/manifests"
 
 etcd_data_dir: "/var/lib/etcd"
+
+basic_dirs:
+    - /etc/kubernetes/pki/ca
+    - /etc/kubernetes/pki/certs/configs
+    - /var/log/kubernetes
+    - /etc/kubernetes/pki/certs/root
+    - /etc/kubernetes/manifests
+    

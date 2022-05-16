@@ -20,9 +20,11 @@
         state: directory
         mode: '0775'
       loop:
-        - "{{ default_path_kubelet }}"
+        - "{{ default_path }}/{{ k8s_component }}"
+        - "{{ default_path_kubelet }}/pki"
         - "{{ pki_path_certs }}/{{ k8s_component }}"
         - "{{ static_pod_path }}"
+        - "/etc/systemd/system/kubelet.service.d"
       loop_control:
           loop_var: k8s_component_path
 
@@ -50,17 +52,19 @@
       set_fact:
         configs_in_copy:
         - name: kubeconfig.j2
-          path: /var/lib/
-        - name: config.j2
-          path: /var/lib/
+          path: /etc/kubernetes
+        - name: service-args-custom.env.j2
+          path: /etc/kubernetes
+          folder: "{{ k8s_component }}"
         - name: config.yaml.j2
-          path: /var/lib/
+          path: /etc/kubernetes
           folder: "{{ k8s_component }}"
-        - name: service-args.j2
-          path: /var/lib/
-          folder: "{{ k8s_component }}"
+        - name: 10-terra-kube.conf.j2
+          path_abs: /etc/systemd/system/kubelet.service.d/10-terra-kube.conf
+          folder: "{{ k8s_component }}/kubelet.service.d"
       tags:
         - kubelet_configs_update
+        - kubelet_service_update
 
     - name: COPY CONFIGS.
       vars:
@@ -71,8 +75,10 @@
         apply:
           tags:
             - kubelet_configs_update
+            - kubelet_service_update
       tags:
         - kubelet_configs_update
+        - kubelet_service_update
 
     - name: ADD NEW SERVICES.
       vars:
