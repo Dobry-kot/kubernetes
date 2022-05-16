@@ -1,8 +1,8 @@
 
 
-HOST_1=cl15tk4od57v58kegou7-esac
-HOST_2=cl15tk4od57v58kegou7-uvuh
-HOST_3=cl15tk4od57v58kegou7-aqop
+HOST_1=cl1e26er158kjnao7pmo-aluw
+HOST_2=cl1e26er158kjnao7pmo-uvuz
+HOST_3=cl1e26er158kjnao7pmo-uhoj
 ENDPOINTS=$HOST_1:2379,$HOST_2:2379,$HOST_3:2379
 etcdctl \
 --write-out=table \
