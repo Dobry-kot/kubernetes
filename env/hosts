@@ -2,15 +2,16 @@
 bastion ansible_host=localhost
 
 [masters]
-cl1e26er158kjnao7pmo-aluw ansible_host=51.250.4.34
-cl1e26er158kjnao7pmo-uvuz ansible_host=51.250.11.11
-cl1e26er158kjnao7pmo-uhoj ansible_host=51.250.69.105
+cl1e26er158kjnao7pmo-aluw ansible_host=51.250.70.172
+cl1e26er158kjnao7pmo-uvuz ansible_host=51.250.89.44
+cl1e26er158kjnao7pmo-uhoj ansible_host=51.250.92.90
+cl1l8jh7j18ubba32ue1-oqiv ansible_host=51.250.85.126
 
 
 [workers]
-; cl1uq73r47ngaj83i7ec-ebyk ansible_host=51.250.66.63
-; cl1uq73r47ngaj83i7ec-ebos ansible_host=51.250.68.205
-; cl1uq73r47ngaj83i7ec-udyk ansible_host=51.250.87.27
+cl1l8jh7j18ubba32ue1-idoc ansible_host=51.250.3.242
+cl1l8jh7j18ubba32ue1-oroh ansible_host=51.250.5.96
+cl1l8jh7j18ubba32ue1-yqed ansible_host=51.250.11.235
 
 [all:children]
 bastion
@@ -20,3 +21,4 @@ workers
 [all:vars]
 ansible_user     = dkot
 ansible_become   = True
+

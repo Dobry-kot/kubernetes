@@ -3,8 +3,8 @@
   vars:
     component: "{{ (component_local | default(k8s_component)) | default('root') }}"
     basic_cert_name: "{{ csr.CN }}"
-    cert_name: "{{ custom_cert_name | default(basic_cert_name) }}"
     basic_cert_path: "{{ pki_path_certs }}"
+    cert_name: "{{ custom_cert_name | default(basic_cert_name) }}"
     cert_path: "{{ custom_cert_path | default(pki_path_certs) }}"
     component_plug: "{% if custom_cert_path is defined %}{% else %}{{ component }}{% endif %}"
   block:

@@ -5,3 +5,4 @@ roles/k8s/templates/services/helpers.md
 env/hosts
 key.json
 scripts/*
+scripts/delete.sh
