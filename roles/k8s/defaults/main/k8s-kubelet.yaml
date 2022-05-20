@@ -1,5 +1,4 @@
 kubelet_args:
-  - --config=/etc/kubernetes/kubelet/config.yaml 
   - --container-runtime=remote 
   - --container-runtime-endpoint=/run/containerd/containerd.sock
   - --pod-infra-container-image=k8s.gcr.io/pause:3.6
@@ -11,7 +10,6 @@ kubelet_args:
   - --image-pull-progress-deadline=2m
   - --v=2
   - --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf 
-  - --kubeconfig=/etc/kubernetes/kubelet/kubeconfig
   - --rotate-certificates=true
   - --anonymous-auth="true"
   # - --node-labels="{{ 'node-role.kubernetes.io/' + group_names | join(',node-role.kubernetes.io/') }}"

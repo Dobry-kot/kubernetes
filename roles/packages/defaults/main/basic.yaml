@@ -8,6 +8,7 @@ basic_packages:
   - conntrack
   - ipset
   - python3-pip
+  - ethtool
 
 basic_pip_packages:
   - kubernetes

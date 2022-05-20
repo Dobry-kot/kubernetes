@@ -29,6 +29,7 @@
         src: "{{ pki_path_ca }}/root-ca.pem"
       register: ca_content
       delegate_to: "{{ groups.masters[0] }}"
+      when: cp_data_plane_install | bool
       tags:
         - kubeadm_configs_update
 
@@ -62,6 +63,7 @@
         apply:
           tags:
             - kubeadm_configs_update
+      when: cp_data_plane_install | bool
       tags:
         - kubeadm_configs_update
 
@@ -77,3 +79,4 @@
       delegate_to: "{{ groups.masters[0] }}"
       register: status_manifests
       when: inventory_hostname == groups.masters[0]
+      when: cp_data_plane_install | bool

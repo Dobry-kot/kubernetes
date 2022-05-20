@@ -85,3 +85,18 @@
   tags:
     - new
 
+- name: SETUP KUBELET.
+  import_role:
+    name: k8s
+    tasks_from: k8s-kubelet.yaml
+  when: not cp_data_plane_install | bool 
+  tags:
+    - kubelet
+
+- name: SETUP KUBEADM.
+  import_role:
+    name: k8s
+    tasks_from: k8s-kubeadm.yaml
+  when: kubeadm | bool and not cp_data_plane_install | bool
+  tags:
+    - kubeadm
