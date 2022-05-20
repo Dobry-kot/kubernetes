@@ -59,8 +59,8 @@
         - spec.certificates.renewBefore                      | int
 
     Сценарии:
-        - создается ресурс etcdСlusterInstance с spec.cluster.instances = 2|4|6+ - создание запрещено кол-во должно быть 1 | 3 | 5
-        - создается ресурс etcdСlusterInstance с spec.cluster.instances = 1 | 3 | 5
+        1. создается ресурс etcdСlusterInstance с spec.cluster.instances = 2|4|6+ - создание запрещено кол-во должно быть 1 | 3 | 5
+        2. создается ресурс etcdСlusterInstance с spec.cluster.instances = 1 | 3 | 5
             аргументы для запуска:
                 - --initial-cluster-state=new
                 - --initial-cluster ${NAME_1}=http://${HOST_1}:2380,${NAME_2}=http://${HOST_2}:2380,${NAME_3}=http://${HOST_3}:2380....
