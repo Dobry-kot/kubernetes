@@ -2,7 +2,7 @@
 
 структура 
 
--------------------------
+
                         |       
                 ----------------
                 |   service    | etcd-{num}.{namespaceName}.svc.cluster.local
@@ -20,7 +20,7 @@
                 |      pvc     | etcd-{num} | size=1G   |     certs    |    etcd-peer
                 ----------------                        ----------------    etcd-healcheck
 
--------------------------
+
 
 Задачи:
 
