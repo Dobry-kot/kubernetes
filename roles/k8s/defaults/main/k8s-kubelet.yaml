@@ -9,7 +9,8 @@ kubelet_args:
   - --register-node=true
   - --image-pull-progress-deadline=2m
   - --v=2
-  - --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf 
+  - --bootstrap-kubeconfig=/etc/kubernetes/kubelet/bootstrap-kubeconfig
+  - --cert-dir=/etc/kubernetes/pki/kubelet
   - --rotate-certificates=true
   - --anonymous-auth="true"
   # - --node-labels="{{ 'node-role.kubernetes.io/' + group_names | join(',node-role.kubernetes.io/') }}"

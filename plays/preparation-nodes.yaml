@@ -1,6 +1,8 @@
 ---
 - name: SETUP BASIC SYSTEM.
   hosts: masters,workers
+  roles:
+    - packages
   tasks:
     - name: SETUP COMPONENTS.
       block:

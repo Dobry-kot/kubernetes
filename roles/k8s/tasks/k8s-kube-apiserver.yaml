@@ -151,10 +151,12 @@
           - name: egress-selector-configuration.yaml.j2
             folder: "{{ k8s_component }}"
           - name: kubeconfig.j2
+            kubeconfig_cert: system:{{ k8s_component }}-kubelet-client
         service_configs:
           - name: service-args-custom.env.j2
             folder: "{{ k8s_component }}"
           - name: service-args-basic.env.j2
+          
       set_fact:
         configs_in_copy: |
           {% if setup_cluster_type == 'service' %}
@@ -166,8 +168,6 @@
         - kube_apiserver_configs_update
 
     - name: COPY CONFIGS.
-      vars:
-        kubeconfig_cert: system:{{ k8s_component }}-kubelet-client
       include_role:
         name: k8s
         tasks_from: k8s-copy-configs.yaml

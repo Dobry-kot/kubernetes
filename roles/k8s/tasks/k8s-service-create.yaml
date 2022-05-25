@@ -26,13 +26,13 @@
               - kube-scheduler
               - etcd
             service_enabled: | 
-              {% if setup_cluster_type == 'service' %}
+              {%- if setup_cluster_type == 'service' -%}
               true
-              {% elif serive_changed.service_name not in list_k8s_components  %}
+              {%- elif serive_changed.service_name not in list_k8s_components  -%}
               true
-              {% else %}
+              {%- else -%}
               false
-              {% endif %}
+              {%- endif -%}
             service_state: |-
               {%- if setup_cluster_type == 'service' -%}
               restarted
@@ -49,7 +49,7 @@
           loop_control:
               loop_var: serive_changed
 
-      when: service_status.changed | bool or 
-            service_state is defined
+      # when: service_status.changed | bool or 
+      #       service_state is defined
   tags:
     - update_services
