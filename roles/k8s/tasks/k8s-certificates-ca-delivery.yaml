@@ -8,7 +8,7 @@
 
     - name: FIND ALL PEM IN <{{ groups.masters[0] }}>
       find:
-        paths: "{{ pki_path_main }}"
+        paths: "{{ default_path_pki }}"
         patterns: "{{ all_patterns.strip(',') }}"
         recurse: true
       register: finded_certs

@@ -9,7 +9,6 @@ kube_controller_manager_args:
     - --concurrent-namespace-syncs=10
     - --concurrent-replicaset-syncs=20
     - --concurrent-resource-quota-syncs=5
-    # - --deployment-controller-sync-period=30s
     - --horizontal-pod-autoscaler-sync-period=30s
     - --kube-api-burst=120
     - --kube-api-qps=100
@@ -27,8 +26,7 @@ kube_controller_manager_args:
     - --resource-quota-sync-period=5m0s
     - --terminated-pod-gc-threshold=0
     - --use-service-account-credentials=true
-    - --controllers=*,bootstrapsigner,tokencleaner,cloud-node-lifecycle
+    - --controllers=*,bootstrapsigner,tokencleaner,cloud-node-lifecycle,csrapproving,csrcleaner,csrsigning
     - --authorization-always-allow-paths=/healthz,/metrics
     - --feature-gates=RotateKubeletServerCertificate=true
     - --v=2
-    - --cluster-signing-duration

@@ -7,14 +7,20 @@
   tags:
     - basic
 
-- name: CREATE NEW CA <{{ component_local }}>.
+- name: CREATE CERTS.
   vars:
-    ca_new: true
-  import_role:
+    k8s_component: kubernetes
+  include_role:
     name: k8s
-    tasks_from: k8s-certificates-ca-new.yaml
+    tasks_from: k8s-certificates-new.yaml
+    apply:
+      tags:
+        - kubernetes_ssl
+  loop: "{{ certificates[k8s_component] }}"
+  loop_control:
+    loop_var: certificate_requet
   tags:
-    - create_root_ca
+    - kubernetes_ssl
 
 - name: SETUP KUBELET.
   import_role:

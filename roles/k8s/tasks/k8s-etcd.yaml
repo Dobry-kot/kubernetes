@@ -7,26 +7,27 @@
       block:
         - name: DOWNLOAD BASIC TAR K8S-CP-COMPONENTS.
           ansible.builtin.unarchive:
-            src: "{{ k8s_cp_tar.url }}"
-            dest: "{{ k8s_cp_tar.path }}"
+            src: "{{ k8s_component_tar.url }}"
+            dest: "{{ k8s_component_tar.path }}"
             remote_src: yes
           loop:
-            - url: "{{ etcd_build.bin.path }}/v{{ etcd_build.bin.version }}/etcd-v{{ etcd_build.bin.version }}-linux-{{ arch }}.tar.gz"
+            - url: "{{ build[k8s_component].bin.path }}/v{{ build[k8s_component].bin.version }}/etcd-v{{ build[k8s_component].bin.version }}-linux-{{ arch }}.tar.gz"
               path: /root
           loop_control:
-              loop_var: k8s_cp_tar
+              loop_var: k8s_component_tar
 
         - name: CREATE A REMOTE FILE WITH FOUND CONTENT. 
           ansible.builtin.copy:
-            src: /root/etcd-v{{ etcd_build.bin.version }}-linux-amd64/{{item}}
-            dest: /usr/bin/{{ item }}
+            src: /root/etcd-v{{ etcd_build.bin.version }}-linux-{{ arch }}/{{ component_bin }}
+            dest: "{{ default_path_bin }}/{{ component_bin }}"
             remote_src: true
             mode: 0775
           loop:
             - etcd
             - etcdctl
             - etcdutl
-          
+          loop_control:
+            loop_var: component_bin
       when: setup_cluster_type == 'service'
       tags:
         - etcd_bin
@@ -37,63 +38,21 @@
         state: directory
         mode: '0775'
       loop:
-        - "{{ default_path }}/{{ k8s_component }}"
-        - "{{ pki_path_certs }}/{{ k8s_component }}"
+        - "{{ default_path_kubernetes }}/{{ k8s_component }}"
+        - "{{ default_path_pki_certs }}/{{ k8s_component }}"
       loop_control:
           loop_var: k8s_component_path
           
-    - name: CREATE NEW CA <{{ k8s_component }}>.
-      vars:
-        ca_new: true
-        ca: root
+    - name: CREATE CERTS.
       include_role:
         name: k8s
-        tasks_from: k8s-certificates-ca-new.yaml
-
-    - name: CREATE CERT ETCD PEER.
-      vars:
-        hosts_list: 
-          - "127.0.0.1"
-          - "localhost"
-          - "{{ ansible_default_ipv4.address }}"
-          - "{{ inventory_hostname }}"
-        csr:
-          CN: "system:{{ k8s_component }}-peer"
-          hosts: "{{ hosts_list }}"
-        profile: peer
-        ca: etcd
-      import_role:
-        name: k8s
-        tasks_from: k8s-certificate-template.yaml
-
-    - name: CREATE CERT ETCD SERVER.
-      vars:
-        hosts_list: 
-          - "127.0.0.1"
-          - "localhost"
-          - "{{ ansible_default_ipv4.address }}"
-          - "{{ inventory_hostname }}"
-        csr:
-          CN: "system:{{ k8s_component }}-server"
-          hosts: "{{ hosts_list }}"
-        profile: peer
-        ca: etcd
-      import_role:
-        name: k8s
-        tasks_from: k8s-certificate-template.yaml
-
-    - name: CREATE CERT ETCD HEALHCHECK CLIENT.
-      vars:
-        csr:
-          CN: "system:{{ k8s_component }}-healthcheck-client"
-          names:
-            - O: "system:masters,"
-        profile: peer
-        ca: etcd
-      import_role:
-        name: k8s
-        tasks_from: k8s-certificate-template.yaml
-
+        tasks_from: k8s-certificates-new.yaml
+        apply:
+          tags:
+            - etcd_ssl
+      loop: "{{ certificates[k8s_component] }}"
+      loop_control:
+        loop_var: certificate_requet
       tags:
         - etcd_ssl
 
@@ -101,11 +60,10 @@
       block:
         - name: COPY CONFIGS.
           vars:
-            default_path: /etc/kubernetes
             kubeconfig_cert: system:{{ k8s_component }}-kubelet-client
           ansible.builtin.template:
             src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
-            dest: "{{ config.path | default(default_path) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
+            dest: "{{ config.path | default(default_path_kubernetes) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
             owner: root
             group: root
             mode: '0775'
@@ -130,11 +88,9 @@
       when: setup_cluster_type == 'service'
 
     - name: COPY MANIFESTS.
-      vars:
-        default_path: /etc/kubernetes
       ansible.builtin.template:
         src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
-        dest: "{{ config.path | default(default_path) }}/manifests/{{ config.name.split('.j2')[0] }}"
+        dest: "{{ config.path | default(default_path_kubernetes) }}/manifests/{{ config.name.split('.j2')[0] }}"
         owner: root
         group: root
         mode: '0775'

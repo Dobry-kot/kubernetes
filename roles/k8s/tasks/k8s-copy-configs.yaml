@@ -1,7 +1,7 @@
 ---
 - name: COPY CONFIGS.
   vars:
-    dest_path: "{{ config.path | default(default_path) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
+    dest_path: "{{ config.path | default(default_path_kubernetes) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
   ansible.builtin.template:
     src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
     dest: '{{ config.path_abs | default(dest_path) }}'

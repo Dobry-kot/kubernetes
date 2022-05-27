@@ -9,11 +9,10 @@ kubelet_args:
   - --register-node=true
   - --image-pull-progress-deadline=2m
   - --v=2
-  - --bootstrap-kubeconfig=/etc/kubernetes/kubelet/bootstrap-kubeconfig
-  - --cert-dir=/etc/kubernetes/pki/kubelet
+  - --bootstrap-kubeconfig={{ default_path_kubernetes }}/kubelet/bootstrap-kubeconfig
+  - --cert-dir={{ default_path_pki }}/kubelet
   - --rotate-certificates=true
-  - --anonymous-auth="true"
-  # - --node-labels="{{ 'node-role.kubernetes.io/' + group_names | join(',node-role.kubernetes.io/') }}"
+  - --anonymous-auth="false"
 
 kubelet_config: |
   apiVersion: kubelet.config.k8s.io/v1beta1
@@ -24,7 +23,7 @@ kubelet_config: |
       cacheTTL: 0s
       enabled: true
     x509:
-      clientCAFile: "{{ pki_path_ca }}/root-ca.pem"
+      clientCAFile: "{{ default_path_pki_ca }}/root-ca.pem"
   authorization:
     mode: Webhook
     webhook:
@@ -57,7 +56,7 @@ kubelet_config: |
   serverTLSBootstrap: true
   shutdownGracePeriod: 0s
   shutdownGracePeriodCriticalPods: 0s
-  staticPodPath: "{{ static_pod_path }}"
+  staticPodPath: "{{ default_path_static_pod }}"
   streamingConnectionIdleTimeout: 0s
   syncFrequency: 0s
   volumeStatsAggPeriod: 0s

@@ -4,7 +4,7 @@ data:
     apiServer:
       timeoutForControlPlane: 4m0s
     apiVersion: kubeadm.k8s.io/v1beta3
-    certificatesDir: {{ pki_path_main }}
+    certificatesDir: {{ default_path_pki }}
     clusterName: kubernetes
     controlPlaneEndpoint: {{ external_api_ip }}:6443
     controllerManager: {}

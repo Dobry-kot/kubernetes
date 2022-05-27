@@ -3,14 +3,14 @@
   vars:
     component: "{{ (component_local | default(k8s_component)) | default('root') }}"
     basic_cert_name: "{{ csr.CN }}"
-    basic_cert_path: "{{ pki_path_certs }}"
+    basic_cert_path: "{{ default_path_pki_certs }}"
     cert_name: "{{ custom_cert_name | default(basic_cert_name) }}"
-    cert_path: "{{ custom_cert_path | default(pki_path_certs) }}"
+    cert_path: "{{ custom_cert_path | default(default_path_pki_certs) }}"
     component_plug: "{% if custom_cert_path is defined %}{% else %}{{ component }}{% endif %}"
   block:
     - name: Find out what the remote machine's mounts are
       slurp:
-        src: "{{ pki_path_certs }}/configs/{{ cert_name }}.json"
+        src: "{{ default_path_pki_certs }}/configs/{{ cert_name }}.json"
       register: certs_check_summ
       failed_when: false
 
@@ -19,7 +19,7 @@
         new_csr: "{{ global.ca_csr | combine(csr) | to_json }}"
       ansible.builtin.copy:
         content: "{{ new_csr }}"
-        dest: "{{ pki_path_certs }}/configs/{{ cert_name }}.json"
+        dest: "{{ default_path_pki_certs }}/configs/{{ cert_name }}.json"
       register: csr_status
       changed_when: certs_check_summ.changed != false or 
                     certs_check_summ.content | default(false) != new_csr | b64encode
@@ -30,9 +30,9 @@
         ca_folder: "{{ ca_prefix.strip('-') }}"
       shell: >
         cfssl gencert \
-        -ca={{ pki_path_ca }}/{{ ca_prefix }}ca.pem \
-        -ca-key={{ pki_path_ca }}/{{ ca_prefix }}ca-key.pem \
-        -config={{ pki_path_certs }}/configs/ca-config.json \
+        -ca={{ default_path_pki_ca }}/{{ ca_prefix }}ca.pem \
+        -ca-key={{ default_path_pki_ca }}/{{ ca_prefix }}ca-key.pem \
+        -config={{ default_path_pki_certs }}/configs/ca-config.json \
         -profile={{ profile }} \
-        {{ pki_path_certs }}/configs/{{ cert_name }}.json | cfssljson -bare {{ cert_path }}/{{ component_plug }}/{{ cert_name }}
+        {{ default_path_pki_certs }}/configs/{{ cert_name }}.json | cfssljson -bare {{ cert_path }}/{{ component_plug }}/{{ cert_name }}
       when: csr_status.changed | bool

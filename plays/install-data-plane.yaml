@@ -1,16 +1,4 @@
 ---
-- name: SETUP K8S DATA-PLANE COMPONENTS FOR WORKERS.
-  hosts: workers
-  tasks:
-    - name: SETUP COMPONENTS.
-      block:
-        - name: SETUP K8S DATA-PLANE COMPONENTS.
-          import_role:
-            name: k8s
-            tasks_from: k8s-data-plane-components.yaml
-          tags:
-            - data_plane
-
 - name: SETUP K8S DATA-PLANE COMPONENTS FOR MASTERS.
   hosts: masters
   tasks:
@@ -21,5 +9,17 @@
             name: k8s
             tasks_from: k8s-data-plane-components.yaml
           when: master_scheduled | bool
+          tags:
+            - data_plane
+            
+- name: SETUP K8S DATA-PLANE COMPONENTS FOR WORKERS.
+  hosts: workers
+  tasks:
+    - name: SETUP COMPONENTS.
+      block:
+        - name: SETUP K8S DATA-PLANE COMPONENTS.
+          import_role:
+            name: k8s
+            tasks_from: k8s-data-plane-components.yaml
           tags:
             - data_plane

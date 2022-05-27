@@ -19,7 +19,7 @@ spec:
     {% for arg in etcd_args %}
       - {{ arg }}
     {% endfor %}
-    image: {{ etcd_build.image.path }}:{{ etcd_build.image.version }}
+    image: {{ build[k8s_component].image.path }}:{{ build[k8s_component].image.version }}
     imagePullPolicy: IfNotPresent
     livenessProbe:
       failureThreshold: 8

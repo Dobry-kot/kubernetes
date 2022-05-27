@@ -9,8 +9,8 @@
         dest: "{{ k8s_component_bin.path }}"
         mode: 0775
       loop:
-        - url: "{{ kubeadm_build.bin.path }}/v{{ kubeadm_build.bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
-          path: /usr/bin/
+        - url: "{{ build[k8s_component].bin.path }}/v{{ build[k8s_component].bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
+          path: "{{ default_path_bin }}"
       loop_control:
           loop_var: k8s_component_bin
 
@@ -20,13 +20,13 @@
         state: directory
         mode: '0775'
       loop:
-        - "/etc/kubernetes/kubeadm/manifests"
+        - "{{ default_path_kubernetes }}/{{ k8s_component }}/manifests"
       loop_control:
           loop_var: kubeadm_component_path
 
     - name: COPY CA CONTENT IN VAR. 
       ansible.builtin.slurp:
-        src: "{{ pki_path_ca }}/root-ca.pem"
+        src: "{{ default_path_pki_ca }}/root-ca.pem"
       register: ca_content
       delegate_to: "{{ groups.masters[0] }}"
       when: cp_data_plane_install | bool
@@ -72,11 +72,11 @@
         state: present
         template:
           - path: 'configs/{{k8s_component}}/{{ k8s_manifest.name }}'
-        kubeconfig: "{{ default_path }}/kube-apiserver/kubeconfig"
+        kubeconfig: "{{ default_path_kubernetes }}/kube-apiserver/kubeconfig"
       loop: "{{ configs_in_copy }}"
       loop_control:
         loop_var: k8s_manifest
       delegate_to: "{{ groups.masters[0] }}"
       register: status_manifests
-      when: inventory_hostname == groups.masters[0]
-      when: cp_data_plane_install | bool
+      when: inventory_hostname == groups.masters[0] and 
+            cp_data_plane_install | bool

@@ -1,10 +1,10 @@
 etcd_args:
-  - --trusted-ca-file={{ pki_path_ca }}/etcd-ca.pem
-  - --cert-file={{ pki_path_certs }}/{{ k8s_component }}/system:etcd-peer.pem
-  - --key-file={{ pki_path_certs }}/{{ k8s_component }}/system:etcd-peer-key.pem
-  - --peer-trusted-ca-file={{ pki_path_ca }}/etcd-ca.pem
-  - --peer-cert-file={{ pki_path_certs }}/{{ k8s_component }}/system:etcd-peer.pem
-  - --peer-key-file={{ pki_path_certs }}/{{ k8s_component }}/system:etcd-peer-key.pem
+  - --trusted-ca-file={{ default_path_pki_ca }}/etcd-ca.pem
+  - --cert-file={{ default_path_pki_certs }}/{{ k8s_component }}/system:etcd-peer.pem
+  - --key-file={{ default_path_pki_certs }}/{{ k8s_component }}/system:etcd-peer-key.pem
+  - --peer-trusted-ca-file={{ default_path_pki_ca }}/etcd-ca.pem
+  - --peer-cert-file={{ default_path_pki_certs }}/{{ k8s_component }}/system:etcd-peer.pem
+  - --peer-key-file={{ default_path_pki_certs }}/{{ k8s_component }}/system:etcd-peer-key.pem
   - --name={{ inventory_hostname }}
   - --client-cert-auth=true
   - --initial-advertise-peer-urls=https://{{ ansible_default_ipv4.address }}:2380
@@ -15,7 +15,7 @@ etcd_args:
   - --initial-cluster-token=etcd
   - --initial-cluster={{ groups.masters[0] }}=https://{{ hostvars[groups.masters[0]].ansible_default_ipv4.address }}:2380,{{ groups.masters[1] }}=https://{{ hostvars[groups.masters[1]].ansible_default_ipv4.address }}:2380,{{ groups.masters[2] }}=https://{{ hostvars[groups.masters[2]].ansible_default_ipv4.address }}:2380
   - --initial-cluster-state=new
-  - --data-dir={{ etcd_data_dir }}
+  - --data-dir={{ default_path_etcd_data }}
   - --strict-reconfig-check
   - --peer-client-cert-auth=true
   - --peer-auto-tls=true

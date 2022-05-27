@@ -3,7 +3,7 @@
     - name: COPY SERVICES.
       ansible.builtin.template:
         src: "services/{{ service_name }}"
-        dest: /etc/systemd/system/{{ service_name }}
+        dest: "{{ default_path_systemd }}/{{ service_name }}"
         owner: root
         group: root
         mode: '0775'
@@ -49,7 +49,7 @@
           loop_control:
               loop_var: serive_changed
 
-      # when: service_status.changed | bool or 
-      #       service_state is defined
+      when: service_status.changed | bool or 
+            service_state is defined
   tags:
     - update_services

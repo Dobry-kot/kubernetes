@@ -3,8 +3,8 @@ cluster_default_service_network     : 29.66.0.0/16
 cluster_default_network_hostprefix  : 24
 cluster_default_network_plugin      : cilium
 
-cluster_dns_ip: "{{ (cluster_default_service_network.split('/')[0].split('.')[0:-1] + [10]) | join('.') }}"
-cluster_api_ip: "{{ (cluster_default_service_network.split('/')[0].split('.')[0:-1] + [1])  | join('.') }}"
+internal_dns_ip: "{{ (cluster_default_service_network.split('/')[0].split('.')[0:-1] + [10]) | join('.') }}"
+internal_api_ip: "{{ (cluster_default_service_network.split('/')[0].split('.')[0:-1] + [1])  | join('.') }}"
 
 external_api_ip: 51.250.4.42
 external_api_port: 6443

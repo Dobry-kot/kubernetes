@@ -9,8 +9,8 @@
         dest: "{{ k8s_component_bin.path }}"
         mode: 0775
       loop:
-        - url: "{{ kube_controller_manager_build.bin.path }}/v{{ kube_controller_manager_build.bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
-          path: /usr/bin/
+        - url: "{{ build[k8s_component].bin.path }}/v{{ build[k8s_component].bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
+          path: "{{ default_path_bin }}"
       loop_control:
           loop_var: k8s_component_bin
       when: setup_cluster_type == 'service'
@@ -21,51 +21,21 @@
         state: directory
         mode: '0775'
       loop:
-        - "{{ default_path }}/{{ k8s_component }}"
-        - "{{ pki_path_certs }}/{{ k8s_component }}"
+        - "{{ default_path_kubernetes }}/{{ k8s_component }}"
+        - "{{ default_path_pki_certs }}/{{ k8s_component }}"
       loop_control:
           loop_var: k8s_component_path
 
-    - name: SSL BLOCK.
-      block:
-        - name: CREATE CERT <{{ k8s_component }}> SERVER.
-          vars:
-            hosts_list: 
-              - "127.0.0.1"
-              - "127.0.1.1"
-              - "127.0.1.6"
-              - "localhost"
-              - "{{ k8s_component }}.svc"
-              - "{{ ansible_default_ipv4.address }}"
-              - "{{ inventory_hostname }}"
-            csr:
-              CN: "system:{{ k8s_component }}-server"
-              names:
-                - O: "system:{{ k8s_component }}"
-              hosts: "{{ hosts_list + groups.masters }}"
-            profile: server
-            ca: root
-          include_role:
-            name: k8s
-            tasks_from: k8s-certificate-template.yaml
-            apply:
-              tags:
-                - kube_controller_manager_ssl
-
-        - name: CREATE CERT <{{ k8s_component }}> CLIENT.
-          vars:
-            csr:
-              CN: "system:{{ k8s_component }}"
-              names:
-                - O: "system:{{ k8s_component }}"
-            profile: client
-            ca: root
-          include_role:
-            name: k8s
-            tasks_from: k8s-certificate-template.yaml
-            apply:
-              tags:
-                - kube_controller_manager_ssl
+    - name: CREATE CERTS.
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificates-new.yaml
+        apply:
+          tags:
+            - kube_controller_manager_ssl
+      loop: "{{ certificates[k8s_component] }}"
+      loop_control:
+        loop_var: certificate_requet
       tags:
         - kube_controller_manager_ssl
 
@@ -108,11 +78,9 @@
       when: setup_cluster_type == 'service'
 
     - name: COPY MANIFESTS.
-      vars:
-        default_path: /etc/kubernetes
       ansible.builtin.template:
         src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
-        dest: "{{ config.path | default(default_path) }}/manifests/{{ config.name.split('.j2')[0] }}"
+        dest: "{{ config.path | default(default_path_kubernetes) }}/manifests/{{ config.name.split('.j2')[0] }}"
         owner: root
         group: root
         mode: '0775'

@@ -1,0 +1,38 @@
+- name: SSL BLOCK.
+  block:
+    - name: CREATE NEW CA.
+      vars:
+        component_local: "{{ certificate_requet.csr.CN }}"
+        ca_new: "{{ certificate_requet.ca_new }}"
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificates-ca-new.yaml
+        apply:
+          tags:
+            - ca_update
+      when: certificate_requet.ca_new | default(false) | bool
+
+    - name: CREATE CERT <{{ certificate_requet.csr.CN | default("")}}> {{ certificate_requet.profile | default("") | upper }}.
+      vars:
+        csr: "{{ certificate_requet.csr }}"
+        profile: "{{ certificate_requet.profile }}"
+        ca: "{{ certificate_requet.ca }}"
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificate-template.yaml
+        apply:
+          tags:
+            - certificates_update
+      when: not certificate_requet.ca_new | default(false) | bool
+
+    - name: DELIVERY CERT <{{ certificate_requet.csr.CN }}>.
+      vars:
+        patterns: "{{ certificate_requet.csr.CN }}*"
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificates-ca-delivery.yaml
+        apply:
+          tags:
+            - certificates_update
+      when: not certificate_requet.ca_new | default(false) | bool and
+            certificate_requet.delivery | default(false) | bool

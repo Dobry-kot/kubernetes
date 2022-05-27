@@ -11,44 +11,45 @@ arch:                 "amd64"
 kubernetes_release_bin_path: https://storage.googleapis.com/kubernetes-release/release
 kubernetes_release_image_path: k8s.gcr.io
 
-etcd_build:
-  bin: 
-    path: https://github.com/etcd-io/etcd/releases/download
-    version: "3.5.4"
-  image: 
-    path: "{{ kubernetes_release_image_path }}/etcd"
-    version: 3.5.3-0
+build:
+  etcd:
+    bin: 
+      path: https://github.com/etcd-io/etcd/releases/download
+      version: "3.5.4"
+    image: 
+      path: "{{ kubernetes_release_image_path }}/etcd"
+      version: 3.5.3-0
 
-kube_apiserver_build:
-  bin: 
-    path: "{{ kubernetes_release_bin_path }}"
-    version: "{{ k8s_version }}"
-  image: 
-    path: "{{ kubernetes_release_image_path }}/kube-apiserver"
-    version: v{{ k8s_version }}
+  kube-apiserver:
+    bin: 
+      path: "{{ kubernetes_release_bin_path }}"
+      version: "{{ k8s_version }}"
+    image: 
+      path: "{{ kubernetes_release_image_path }}/kube-apiserver"
+      version: v{{ k8s_version }}
 
-kube_controller_manager_build:
-  bin: 
-    path: "{{ kubernetes_release_bin_path }}"
-    version: "{{ k8s_version }}"
-  image: 
-    path: "{{ kubernetes_release_image_path }}/kube-controller-manager"
-    version: v{{ k8s_version }}
+  kube-controller-manager:
+    bin: 
+      path: "{{ kubernetes_release_bin_path }}"
+      version: "{{ k8s_version }}"
+    image: 
+      path: "{{ kubernetes_release_image_path }}/kube-controller-manager"
+      version: v{{ k8s_version }}
 
-kube_scheduler_build:
-  bin: 
-    path: "{{ kubernetes_release_bin_path }}"
-    version: "{{ k8s_version }}"
-  image: 
-    path: "{{ kubernetes_release_image_path }}/kube-scheduler"
-    version: v{{ k8s_version }}
+  kube-scheduler:
+    bin: 
+      path: "{{ kubernetes_release_bin_path }}"
+      version: "{{ k8s_version }}"
+    image: 
+      path: "{{ kubernetes_release_image_path }}/kube-scheduler"
+      version: v{{ k8s_version }}
 
-kubelet_build:
-  bin: 
-    path: "{{ kubernetes_release_bin_path }}"
-    version: "{{ k8s_version }}"
+  kubelet:
+    bin: 
+      path: "{{ kubernetes_release_bin_path }}"
+      version: "{{ k8s_version }}"
 
-kubeadm_build:
-  bin: 
-    path: "{{ kubernetes_release_bin_path }}"
-    version: "{{ k8s_version }}"
+  kubeadm:
+    bin: 
+      path: "{{ kubernetes_release_bin_path }}"
+      version: "{{ k8s_version }}"

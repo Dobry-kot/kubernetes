@@ -2,13 +2,14 @@
 bastion ansible_host=localhost
 
 [masters]
-cl1e26er158kjnao7pmo-aluw ansible_host=51.250.69.238
-cl1e26er158kjnao7pmo-uvuz ansible_host=51.250.4.176
-cl1e26er158kjnao7pmo-uhoj ansible_host=51.250.0.117
+cl1gprn7aj4u1ot59jhm-ocir ansible_host=51.250.83.161
+cl1gprn7aj4u1ot59jhm-uman ansible_host=51.250.90.139
+cl1gprn7aj4u1ot59jhm-edem ansible_host=51.250.11.99
 
 
 [workers]
-okula ansible_host=51.250.88.119
+okula ansible_host=51.250.13.115
+
 [all:children]
 bastion
 masters

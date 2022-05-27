@@ -9,8 +9,8 @@
         dest: "{{ k8s_component_bin.path }}"
         mode: 0775
       loop:
-        - url: "{{ kubelet_build.bin.path }}/v{{ kubelet_build.bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
-          path: /usr/bin/
+        - url: "{{ build[k8s_component].bin.path }}/v{{ build[k8s_component].bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
+          path: "{{ default_path_bin }}"
       loop_control:
           loop_var: k8s_component_bin
           
@@ -20,30 +20,23 @@
         state: directory
         mode: '0775'
       loop:
-        - "{{ default_path }}/{{ k8s_component }}"
+        - "{{ default_path_kubernetes }}/{{ k8s_component }}"
         - "{{ default_path_kubelet }}/pki"
-        - "{{ pki_path_certs }}/{{ k8s_component }}"
-        - "{{ static_pod_path }}"
-        - "/etc/systemd/system/kubelet.service.d"
+        - "{{ default_path_pki_certs }}/{{ k8s_component }}"
+        - "{{ default_path_systemd }}/kubelet.service.d"
       loop_control:
           loop_var: k8s_component_path
 
-    - name: SSL BLOCK.
-      block:
-        - name: CREATE CERT <{{ k8s_component }}> CLIENT.
-          vars:
-            csr:
-              CN: "system:node:{{ inventory_hostname }}"
-              names:
-                - O: "system:nodes"
-            profile: client
-            ca: root
-          include_role:
-            name: k8s
-            tasks_from: k8s-certificate-template.yaml
-            apply:
-              tags:
-                - kubelet_ssl
+    - name: CREATE CERTS.
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificates-new.yaml
+        apply:
+          tags:
+            - kubelet_ssl
+      loop: "{{ certificates[k8s_component] }}"
+      loop_control:
+        loop_var: certificate_requet
       tags:
         - kubelet_ssl
       when: cp_data_plane_install | bool and 
@@ -58,19 +51,16 @@
           set_fact:
             configs_in_copy:
             - name: kubeconfig.j2
-              path: /etc/kubernetes
               kubeconfig_cert: system:node:{{ inventory_hostname }}
             - name: kubeconfig.j2
-              path_abs: /etc/kubernetes/{{ k8s_component }}/bootstrap-kubeconfig
+              path_abs: "{{ default_path_kubernetes }}/{{ k8s_component }}/bootstrap-kubeconfig"
               kubeconfig_cert: system:bootstrapper:{{ inventory_hostname }}
             - name: service-args-custom.env.j2
-              path: /etc/kubernetes
               folder: "{{ k8s_component }}"
             - name: config.yaml.j2
-              path: /etc/kubernetes
               folder: "{{ k8s_component }}"
             - name: 10-kubeadm.conf.j2
-              path_abs: /etc/systemd/system/kubelet.service.d/10-terra-kube.conf
+              path_abs: "{{ default_path_systemd }}/kubelet.service.d/10-kubeadm.conf"
               folder: "{{ k8s_component }}/kubelet.service.d"
 
         - name: COPY CONFIGS.

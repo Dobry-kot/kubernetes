@@ -1,16 +1,18 @@
-default_path:         "/etc/kubernetes"
-default_path_kubelet: "/var/lib/kubelet"
-pki_path_main:        "{{ default_path }}/pki"
-pki_path_ca:          "{{ pki_path_main }}/ca"
-pki_path_certs:       "{{ pki_path_main }}/certs"
-static_pod_path:      "{{ default_path }}/manifests"
+default_path_kubernetes:    "/etc/kubernetes"
+default_path_kubelet:       "/var/lib/kubelet"
+default_path_systemd:       "/etc/systemd/system"
+default_path_logs:          "/var/log/kubernetes"
+default_path_etcd_data:     "/var/lib/etcd"
 
-etcd_data_dir: "/var/lib/etcd"
+default_path_pki:           "{{ default_path_kubernetes }}/pki"
+default_path_pki_ca:        "{{ default_path_pki }}/ca"
+default_path_pki_certs:     "{{ default_path_pki }}/certs"
+default_path_static_pod:    "{{ default_path_kubernetes }}/manifests"
+default_path_bin:           "/usr/bin"
 
 basic_dirs:
-    - /etc/kubernetes/pki/ca
-    - /etc/kubernetes/pki/certs/configs
-    - /var/log/kubernetes
-    - /etc/kubernetes/pki/certs/root
-    - /etc/kubernetes/manifests
-    
+    - "{{ default_path_pki_ca }}"
+    - "{{ default_path_pki_certs }}/configs"
+    - "{{ default_path_logs }}"
+    - "{{ default_path_pki_certs }}/root"
+    - "{{ default_path_static_pod }}"

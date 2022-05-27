@@ -7,18 +7,18 @@
         - name: CREATE CA CONF.
           ansible.builtin.copy:
             content: "{{ global.ca_config }}"
-            dest: "{{ pki_path_certs }}/configs/ca-config.json"
+            dest: "{{ default_path_pki_certs }}/configs/ca-config.json"
           register: ca_conf_status
 
         - name: CREATE CA CSR.
           ansible.builtin.copy:
             content: "{{ (csr | default({})) | combine(global.ca_csr) }}"
-            dest: "{{ pki_path_certs }}/configs/{{ component_prefix }}ca-csr.json"
+            dest: "{{ default_path_pki_certs }}/configs/{{ component_prefix }}ca-csr.json"
           register: ca_csr_status
 
         - name: CREATE CA <{{ component }}>.
           shell: >
             cfssl gencert 
-            -initca {{ pki_path_certs }}/configs/{{ component_prefix }}ca-csr.json | 
-            cfssljson -bare {{ pki_path_ca }}/{{ component_prefix }}ca
+            -initca {{ default_path_pki_certs }}/configs/{{ component_prefix }}ca-csr.json | 
+            cfssljson -bare {{ default_path_pki_ca }}/{{ component_prefix }}ca
           when: ca_csr_status.changed | bool
