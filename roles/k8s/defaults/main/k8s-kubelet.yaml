@@ -10,7 +10,7 @@ kubelet_args:
   - --image-pull-progress-deadline=2m
   - --v=2
   - --bootstrap-kubeconfig={{ default_path_kubernetes }}/kubelet/bootstrap-kubeconfig
-  - --cert-dir={{ default_path_pki }}/kubelet
+  - --cert-dir={{ default_path_pki_certs }}/kubelet
   - --rotate-certificates=true
   - --anonymous-auth="false"
 

@@ -1,0 +1,20 @@
+- name: APPLY MANIFESTS.
+  kubernetes.core.k8s:
+    state: present
+    template:
+      - path: '{{ manifest }}'
+    kubeconfig: "{{ default_path_kubernetes }}/kube-apiserver/kubeconfig"
+  delegate_to: "{{ groups.masters[0] }}"
+  when: inventory_hostname == groups.masters[0]
+  loop:
+    - "configs/kubelet/manifests/crb:create-csrs-for-bootstrapping.yaml.j2"
+    - "configs/kube-controller-manager/manifests/crb:auto-approve-renewals-for-nodes.yaml.j2"
+  loop_control:
+    loop_var: manifest
+  until: not update_status.failed | bool
+  retries: 30
+  delay: 3
+  register: update_status
+  ignore_errors: true
+  tags:
+    - update_manifests

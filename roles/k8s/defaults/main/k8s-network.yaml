@@ -6,5 +6,5 @@ cluster_default_network_plugin      : cilium
 internal_dns_ip: "{{ (cluster_default_service_network.split('/')[0].split('.')[0:-1] + [10]) | join('.') }}"
 internal_api_ip: "{{ (cluster_default_service_network.split('/')[0].split('.')[0:-1] + [1])  | join('.') }}"
 
-external_api_ip: 51.250.4.42
+external_api_ip: 51.250.67.231
 external_api_port: 6443

@@ -38,7 +38,6 @@
   tags:
     - kubeadm
 
-
 - name: SETUP ETCD CLUSTER.
   import_role:
     name: k8s
@@ -66,4 +65,11 @@
     tasks_from: k8s-kube-scheduler.yaml
   tags:
     - kube_scheduler
+
+- name: SETUP BASIC MANIFESTS.
+  import_role:
+    name: k8s
+    tasks_from: k8s-manifests-update.yaml
+  tags:
+    - kube_manifests
 

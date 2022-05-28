@@ -1,0 +1,15 @@
+{% set expiration = ('%Y-%m-%dT%H:%M:%SZ' | strftime(ansible_date_time.epoch | int + 3600)) | b64encode %}
+---
+apiVersion: v1
+data:
+  auth-extra-groups: c3lzdGVtOmJvb3RzdHJhcHBlcnM6a3ViZWFkbTpkZWZhdWx0LW5vZGUtdG9rZW4=
+  expiration: "{{ expiration }}"
+  token-id: "{{ toke_id }}"
+  token-secret: "{{ toke_secret }}"
+  usage-bootstrap-authentication: dHJ1ZQ==
+  usage-bootstrap-signing: dHJ1ZQ==
+kind: Secret
+metadata:
+  name: bootstrap-token-{{ toke_id | b64decode | lower }}
+  namespace: kube-system
+type: bootstrap.kubernetes.io/token

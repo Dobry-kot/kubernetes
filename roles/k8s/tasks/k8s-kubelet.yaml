@@ -27,34 +27,81 @@
       loop_control:
           loop_var: k8s_component_path
 
-    - name: CREATE CERTS.
-      include_role:
-        name: k8s
-        tasks_from: k8s-certificates-new.yaml
-        apply:
+    - name: SSL BLOCK.
+      block:
+        - name: COPY CA BUNDLE CONTENT IN VAR. 
+          ansible.builtin.slurp:
+            src: "{{ default_path_pki_ca }}/root-ca.pem"
+          register: ca_content
+          delegate_to: "{{ groups.masters[0] }}"
+
+        - name: COPY CA BUNDLE IN INSTANCE.
+          ansible.builtin.copy:
+            content: "{{ ca_content.content | b64decode }}"
+            dest: "{{ default_path_pki_ca }}/root-ca.pem"
+            
+        - name: CREATE CERTS.
+          include_role:
+            name: k8s
+            tasks_from: k8s-certificates-new.yaml
+            apply:
+              tags:
+                - kubelet_ssl
+          loop: "{{ certificates[k8s_component] }}"
+          loop_control:
+            loop_var: certificate_requet
           tags:
             - kubelet_ssl
-      loop: "{{ certificates[k8s_component] }}"
-      loop_control:
-        loop_var: certificate_requet
-      tags:
-        - kubelet_ssl
-      when: cp_data_plane_install | bool and 
-            inventory_hostname in groups.masters
+          when: cp_data_plane_install | bool and 
+                inventory_hostname in groups.masters
 
-  ###### Требуется добавить блок для создания бутстрап токена время жизни 1h
+    - name: CHECK EXIST NODE.
+      kubernetes.core.k8s:
+        state: patched
+        api_version: v1
+        kind: Node
+        name: "{{ inventory_hostname }}"
+        kubeconfig: "{{ default_path_kubernetes }}/kube-apiserver/kubeconfig"
+      delegate_to: "{{ groups.masters[0] }}"
+      register: node_status
+      until: not node_status.failed | bool
+      retries: 30
+      delay: 5
+      ignore_errors: true
+
+    - name: BOOTSTRAP BLOCK.
+      block:
+        - name: BOOTSTRAP TOKEN.
+          set_fact:
+            toke_id: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=6') | b64encode }}"
+            toke_secret: "{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=16') | b64encode }}"
+
+        - name: APPLY BOOTSTRAP TOKEN.
+          kubernetes.core.k8s:
+            state: present
+            template:
+              - path: 'configs/kubelet/bootstrap-token.yaml.j2'
+            kubeconfig: "{{ default_path_kubernetes }}/kube-apiserver/kubeconfig"
+          delegate_to: "{{ groups.masters[0] }}"
+          until: not k8s_update_status.failed | bool
+          retries: 30
+          delay: 5
+          register: k8s_update_status
+          ignore_errors: true
+          when: inventory_hostname in groups.workers
+          tags:
+            - bootstrap_token
+      when: node_status.result == {} and 
+            not inventory_hostname in groups.masters
 
     - name: CONFIGS BLOCK.
       block:
         - name: LIST BASIC CONFIGS
-          vars:
           set_fact:
-            configs_in_copy:
+            basic_configs_in_copy:
             - name: kubeconfig.j2
               kubeconfig_cert: system:node:{{ inventory_hostname }}
-            - name: kubeconfig.j2
-              path_abs: "{{ default_path_kubernetes }}/{{ k8s_component }}/bootstrap-kubeconfig"
-              kubeconfig_cert: system:bootstrapper:{{ inventory_hostname }}
+              path_abs: "{{ default_path_kubernetes }}/{{ k8s_component }}/kubeconfig"
             - name: service-args-custom.env.j2
               folder: "{{ k8s_component }}"
             - name: config.yaml.j2
@@ -62,6 +109,20 @@
             - name: 10-kubeadm.conf.j2
               path_abs: "{{ default_path_systemd }}/kubelet.service.d/10-kubeadm.conf"
               folder: "{{ k8s_component }}/kubelet.service.d"
+
+        - name: LIST BOOTSTRAP CONFIGS
+          vars:
+          set_fact:
+            bootstrap_configs_in_copy:
+            - name: kubeconfig.j2
+              path_abs: "{{ default_path_kubernetes }}/{{ k8s_component }}/bootstrap-kubeconfig"
+              kubeconfig_cert: system:bootstrapper:{{ inventory_hostname }}
+          when: node_status.result == {} and 
+                not inventory_hostname in groups.masters
+
+        - name: LIST ALL CONFIGS
+          set_fact:
+            configs_in_copy: "{{ basic_configs_in_copy + bootstrap_configs_in_copy | default([]) }}"
 
         - name: COPY CONFIGS.
           include_role:

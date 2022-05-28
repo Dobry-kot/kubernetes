@@ -1,5 +1,5 @@
 master_scheduled: true
-cloud_provider: false
+cloud_provider: true
 setup_cluster_type: static-pod # service/static-pod
 cp_data_plane_install: true
 kubeadm: false

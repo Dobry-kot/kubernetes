@@ -1,0 +1,15 @@
+---
+- name: SETUP K8S DATA-PLANE COMPONENTS FOR WORKERS.
+  hosts: workers
+  tasks:
+    - name: SETUP COMPONENTS.
+      block:
+        - name: SETUP K8S DATA-PLANE COMPONENTS.
+          vars:
+            cp_data_plane_install: false
+          import_role:
+            name: k8s
+            tasks_from: k8s-data-plane-components.yaml
+          when: not cp_data_plane_install | bool
+          tags:
+            - data_plane

@@ -78,5 +78,9 @@
         loop_var: k8s_manifest
       delegate_to: "{{ groups.masters[0] }}"
       register: status_manifests
+      until: not status_manifests.failed | bool
+      retries: 30
+      delay: 5
+      ignore_errors: true
       when: inventory_hostname == groups.masters[0] and 
             cp_data_plane_install | bool

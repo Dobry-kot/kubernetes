@@ -14,5 +14,4 @@ basic_dirs:
     - "{{ default_path_pki_ca }}"
     - "{{ default_path_pki_certs }}/configs"
     - "{{ default_path_logs }}"
-    - "{{ default_path_pki_certs }}/root"
     - "{{ default_path_static_pod }}"

@@ -1,3 +1,4 @@
 - import_playbook: preparation-nodes.yaml
-- import_playbook: install-data-plane.yaml
+- import_playbook: install-master-data-plane.yaml
 - import_playbook: install-controle-plane.yaml
+- import_playbook: install-worker-data-plane.yaml

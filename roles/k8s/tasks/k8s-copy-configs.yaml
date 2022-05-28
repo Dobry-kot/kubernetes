@@ -7,7 +7,7 @@
     dest: '{{ config.path_abs | default(dest_path) }}'
     owner: root
     group: root
-    mode: '0775'
+    mode: '664'
   loop: "{{ configs_in_copy }}"
   loop_control:
       loop_var: config
