@@ -1,0 +1,16 @@
+basic_packages:
+  - jq
+  - tree
+  - irqbalance
+  - atop
+  - net-tools
+  - socat 
+  - conntrack
+  - ipset
+  - python3-pip
+  - ethtool
+  - unzip
+  
+basic_pip_packages:
+  - kubernetes
+  - docker-py

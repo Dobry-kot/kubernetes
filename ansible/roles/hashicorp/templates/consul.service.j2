@@ -1,0 +1,16 @@
+[Unit]
+Description=Consul server agent
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+PermissionsStartOnly=true
+
+ExecStart=/usr/bin/consul agent \
+    -config-file=/var/lib/consul/consul-server.hcl  -ui
+
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+

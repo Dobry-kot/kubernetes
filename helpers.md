@@ -3,13 +3,14 @@
 HOST_1=51.250.3.242
 HOST_2=51.250.5.96
 HOST_3=51.250.11.235
-ENDPOINTS=$HOST_1:2379,$HOST_2:2379,$HOST_3:2379
+
+ENDPOINTS=10.146.248.144:2379,10.146.248.160:2379
 etcdctl \
 --write-out=table \
 --endpoints=$ENDPOINTS \
---cert /etc/kubernetes/pki/certs/etcd/system:etcd-peer.pem \
---key /etc/kubernetes/pki/certs/etcd/system:etcd-peer-key.pem \
---cacert /etc/kubernetes/pki/ca/etcd-ca.pem \
+--cert /var/lib/etcd-secrets/tls.crt \
+--key /var/lib/etcd-secrets/tls.key \
+--cacert /var/lib/etcd-secrets/ca.crt \
 endpoint status
 
 
@@ -34,3 +35,5 @@ etcd -name infra1 \
 -listen-peer-urls http://10.0.1.13:2380 \
 -listen-client-urls http://10.0.1.13:2379,http://127.0.0.1:2379 \
 -advertise-client-urls http://10.0.1.13:2379,http://127.0.0.1:2379
+
+curl -sLO https://git.io/cilium-sysdump-latest.zip && python cilium-sysdump-latest.zip

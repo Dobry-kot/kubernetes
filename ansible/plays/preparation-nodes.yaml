@@ -1,0 +1,58 @@
+---
+- name: SETUP BASIC SYSTEM.
+  hosts: all
+  roles:
+    - packages
+  tasks:
+    - name: SETUP COMPONENTS.
+      block:
+        - name: INSTALL BASIC COMPONENTS.
+          import_role:
+            name: packages
+            tasks_from: update-repo.yaml
+          tags:
+            - basic
+
+        - name: INSTALL BASIC COMPONENTS.
+          import_role:
+            name: packages
+            tasks_from: basic.yaml
+          tags:
+            - basic_pkg
+
+        - name: INSTALL BASIC COMPONENTS.
+          import_role:
+            name: k8s
+            tasks_from: k8s-basic.yaml
+          tags:
+            - basic_pkg
+
+        - name: SETUP BASIC NETWORK.
+          import_role:
+            name: network
+            tasks_from: basic.yaml
+          tags:
+            - basic_network
+
+        - name: SETUP BASIC CRI.
+          import_role:
+            name: k8s
+            tasks_from: k8s-containerd-runtime.yaml
+          when: basic_cri == "containerd"
+          tags:
+            - basic_cri
+
+        - name: SETUP BASIC CNI.
+          import_role:
+            name: k8s
+            tasks_from: k8s-cni-basic.yaml
+          tags:
+            - basic_cni
+
+        - name: SETUP BASIC KUBELET.
+          import_role:
+            name: k8s
+            tasks_from: k8s-kubelet-service.yaml
+          when: setup_cluster_type == "static-pod"
+          tags:
+            - kubelet_service

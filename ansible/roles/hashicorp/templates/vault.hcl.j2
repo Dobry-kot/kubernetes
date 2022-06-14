@@ -1,0 +1,15 @@
+listener "tcp" {
+  address          = "0.0.0.0:9200"
+  cluster_address  = "{{ ansible_default_ipv4.address }}:9201"
+  tls_disable      = "true"
+}
+
+storage "consul" {
+  address = "127.0.0.1:8500"
+  path    = "vault/"
+}
+
+api_addr = "http://{{ ansible_default_ipv4.address }}:9200"
+cluster_addr = "https://{{ ansible_default_ipv4.address }}:9201"
+disable_sealwrap = true
+disable_mlock = true

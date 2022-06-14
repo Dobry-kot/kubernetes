@@ -1,0 +1,96 @@
+---
+- name: SETUP KUBE-SCHEDULER.
+  vars:
+    k8s_component: kube-scheduler
+  block:
+    - name: DOWNLOAD BASIC BINARY K8S-COMPONENTS.
+      get_url:
+        url: "{{ k8s_component_bin.url }}"
+        dest: "{{ k8s_component_bin.path }}"
+        mode: 0775
+      loop:
+        - url: "{{ build[k8s_component].bin.path }}/v{{ build[k8s_component].bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
+          path: "{{ default_path_bin }}"
+      loop_control:
+          loop_var: k8s_component_bin
+      when: setup_cluster_type == 'service'
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: "{{ k8s_component_path }}"
+        state: directory
+        mode: '0775'
+      loop:
+        - "{{ default_path_kubernetes }}/{{ k8s_component }}"
+        - "{{ default_path_pki_certs }}/{{ k8s_component }}"
+      loop_control:
+          loop_var: k8s_component_path
+
+    - name: CREATE CERTS.
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificates-new.yaml
+        apply:
+          tags:
+            - kube_scheduler_ssl
+            - update_cp_ssl
+      loop: "{{ certificates[k8s_component] }}"
+      loop_control:
+        loop_var: certificate_requet
+      tags:
+        - kube_scheduler_ssl
+        - update_cp_ssl
+
+    - name: LIST BASIC CONFIGS
+      vars:
+        basic_configs:
+          - name: kubeconfig.j2
+            kubeconfig_cert: system:{{ k8s_component }}
+        service_configs:
+          - name: service-args-custom.env.j2
+            folder: "{{ k8s_component }}"
+          - name: service-args-basic.env.j2
+      set_fact:
+        configs_in_copy: |
+          {% if setup_cluster_type == 'service' %}
+          {{ basic_configs + service_configs }}
+          {% elif setup_cluster_type == 'static-pod' %}
+          {{ basic_configs }}
+          {% endif %}
+
+    - name: COPY CONFIGS.
+      include_role:
+        name: k8s
+        tasks_from: k8s-copy-configs.yaml
+        apply:
+          tags:
+            - kube_scheduler_configs_update
+      tags:
+        - kube_scheduler_configs_update
+
+    - name: ADD NEW SERVICES.
+      vars:
+        services_list:
+          - "{{ k8s_component }}.service"
+      import_role:
+        name: k8s
+        tasks_from: k8s-service-create.yaml
+      tags:
+        - kube_kube_scheduler_service_update
+      when: setup_cluster_type == 'service'
+
+    - name: COPY MANIFESTS.
+      ansible.builtin.template:
+        src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
+        dest: "{{ config.path | default(default_path_kubernetes) }}/manifests/{{ config.name.split('.j2')[0] }}"
+        owner: root
+        group: root
+        mode: '0775'
+      loop:
+        - name: kube-scheduler.yaml.j2
+          folder: "{{ k8s_component }}"
+      loop_control:
+          loop_var: config
+      tags:
+        - kube_scheduler_manifest_update
+      when: setup_cluster_type == 'static-pod'

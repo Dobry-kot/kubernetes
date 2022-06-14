@@ -1,0 +1,127 @@
+---
+- name: SETUP KUBE-SCHEDULER.
+  vars:
+    hashicorp_component: consul
+  block:
+
+    - name: DOWNLOAD BASIC BINARY HASHICORP-COMPONENTS.
+      get_url:
+        url: "{{ hashicorp_component_tar.url }}"
+        dest: "{{ hashicorp_component_tar.path }}"
+        mode: 0775
+        remote_src: yes
+      register: download_status
+      loop:
+        - url: https://storage.yandexcloud.net/m.images/consul_1.12.2_linux_amd64.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220611%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220611T163631Z&X-Amz-Expires=2592000&X-Amz-Signature=895E117199B3D9FB37D85A10947603F6006370DDE474D240CA6AE0DE53599F01&X-Amz-SignedHeaders=host
+          path: /tmp/consul
+        - url: https://storage.yandexcloud.net/m.images/vault_1.11.0-rc1_linux_amd64.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220611%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220611T183347Z&X-Amz-Expires=2592000&X-Amz-Signature=2E1425F3CC33D6E26245B47725DD7CC09B9A7F51C49E85630A1F00459694E293&X-Amz-SignedHeaders=host
+          path: /tmp/vault
+      loop_control:
+          loop_var: hashicorp_component_tar
+
+    - name: UNZIP BASIC BINARY HASHICORP-COMPONENTS.
+      ansible.builtin.unarchive:
+        src: "{{ hashicorp_component_bin.url }}"
+        dest: "{{ hashicorp_component_bin.path }}"
+        mode: 0775
+        remote_src: yes
+      loop:
+        - url: /tmp/consul
+          path: /usr/bin/
+        - url: /tmp/vault
+          path: /usr/bin/
+      loop_control:
+          loop_var: hashicorp_component_bin
+
+    - name: RESTART SERVICE.
+      service:
+        name: "{{ service_name }}"
+        state: stopped
+        enabled: true
+      loop: 
+      - consul.service
+      - vault.service
+      loop_control:
+          loop_var: service_name
+      tags:
+        - update_service
+
+    - name: Delete content & directory
+      file:
+        state: absent
+        path: "{{ hashicorp_component_path }}"
+      loop:
+        - /var/lib/consul/data
+        - /var/lib/vault
+      loop_control:
+          loop_var: hashicorp_component_path
+
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: "{{ hashicorp_component_path }}"
+        state: directory
+        mode: '0775'
+      loop:
+        - /var/lib/consul/data
+        - /var/lib/vault
+      loop_control:
+          loop_var: hashicorp_component_path
+
+    - set_fact:
+        list_members: "{{ list_members | default([]) + [\"%s\" %(hostvars[member].ansible_default_ipv4.address)] }}"
+      loop: "{{ groups.masters }}"
+      loop_control:
+        loop_var: member
+
+    - name: COPY SERVICES.
+      ansible.builtin.template:
+        src: "{{ template_name.name }}"
+        dest: "{{ template_name.path }}/{{ template_name.name.split('.j2')[0] }}"
+        owner: root
+        group: root
+        mode: '0775'
+      loop: 
+        - name: consul-server.hcl.j2
+          path: /var/lib/consul
+        - name: consul.service.j2
+          path: /etc/systemd/system
+        - name: vault.service.j2
+          path: /etc/systemd/system
+        - name: vault.hcl.j2
+          path: /var/lib/vault
+      loop_control:
+          loop_var: template_name
+      register: service_status
+      tags:
+        - update_service
+
+    - name: DAEMON-RELOAD.
+      ansible.builtin.systemd:
+        daemon_reload: yes
+      tags:
+        - update_service
+
+    - name: RESTART SERVICE.
+      service:
+        name: "{{ service_name }}"
+        state: "{{ service_state | default('restarted') }}"
+        enabled: true
+      loop: 
+      - consul.service
+      loop_control:
+          loop_var: service_name
+      tags:
+        - update_service
+
+    # - name: RESTART SERVICE.
+    #   service:
+    #     name: "{{ service_name }}"
+    #     state: "{{ service_state | default('restarted') }}"
+    #     enabled: true
+    #   loop: 
+    #   - vault.service
+    #   loop_control:
+    #       loop_var: service_name
+    #   tags:
+    #     - update_service

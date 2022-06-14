@@ -1,0 +1,239 @@
+global:
+  ca_config:
+    signing:
+      default:
+        expiry: 8760h
+      profiles:
+        intermediate_ca:
+          usages:
+          - signing
+          - digital signature
+          - key encipherment
+          - cert sign
+          - crl sign
+          - server auth
+          - client auth
+          expiry: 8760h
+          ca_constraint:
+            is_ca: true
+            max_path_len: 0
+            max_path_len_zero: true
+        peer:
+          usages:
+          - signing
+          - digital signature
+          - key encipherment
+          - client auth
+          - server auth
+          expiry: 8760h
+        server:
+          usages:
+          - signing
+          - digital signing
+          - key encipherment
+          - server auth
+          expiry: 8760h
+        client:
+          usages:
+          - signing
+          - digital signature
+          - key encipherment
+          - client auth
+          expiry: 8760h
+        sa:
+          usages:
+          - "signing"
+          - "key encipherment"
+          - "cert sign"
+          expiry: 8760h
+
+  ca_csr:
+    key:
+      algo: rsa
+      size: 2048
+    names:
+      - OU: Kubernetes
+
+certificates:
+  kubernetes:
+    - csr:
+        CN: root
+      ca_new: true
+
+  kube-apiserver:
+    - csr:
+        CN: front-proxy
+      ca_new: true
+
+    - csr:
+        CN: "system:{{ k8s_component }}-front-proxy-client"
+        names:
+          - O: "system:masters"
+      profile: client
+      ca: front-proxy
+
+    - csr:
+        CN: "system:{{ k8s_component }}-sa"
+        names:
+          - O: "system:{{ k8s_component }}"
+      profile: sa
+      ca: root
+      delivery: true
+
+    - csr:
+        CN: "system:{{ k8s_component }}-etcd-client"
+        names:
+          - O: "system:masters"
+      profile: client
+      ca: etcd
+
+    - csr:
+        CN: "system:{{ k8s_component }}-server"
+        names:
+          - O: "system:{{ k8s_component }}"
+        hosts:
+          - "127.0.0.1"
+          - "127.0.1.1"
+          - "127.0.1.6"
+          - "localhost"
+          - "kubernetes"
+          - "kubernetes.default"
+          - "kubernetes.default.svc"
+          - "kubernetes.default.svc.cluster"
+          - "kubernetes.default.svc.cluster.local"
+          - "{{ ansible_default_ipv4.address }}"
+          - "{{ internal_api_ip }}"
+          - "{{ external_api_ip }}"
+          - "{{ inventory_hostname }}"
+      profile: server
+      ca: root
+
+    - csr:
+        CN: "system:{{ k8s_component }}-kubelet-client"
+        names:
+          - O: "system:masters"
+      profile: client
+      ca: root
+
+  kube-controller-manager:
+    - csr:
+        CN: "system:{{ k8s_component }}"
+        names:
+          - O: "system:{{ k8s_component }}"
+      profile: client
+      ca: root
+
+    - csr:
+        CN: "system:{{ k8s_component }}-server"
+        names:
+          - O: "system:{{ k8s_component }}"
+        hosts:
+          - "127.0.0.1"
+          - "127.0.1.1"
+          - "127.0.1.6"
+          - "localhost"
+          - "{{ k8s_component }}.default"
+          - "{{ k8s_component }}.default.svc"
+          - "{{ k8s_component }}.default.svc.cluster"
+          - "{{ k8s_component }}.default.svc.cluster.local"
+          - "{{ ansible_default_ipv4.address }}"
+          - "{{ inventory_hostname }}"
+      profile: server
+      ca: root
+
+  kube-scheduler:
+    - csr:
+        CN: "system:{{ k8s_component }}"
+        names:
+          - O: "system:{{ k8s_component }}"
+      profile: client
+      ca: root
+
+    - csr:
+        CN: "system:{{ k8s_component }}-server"
+        names:
+          - O: "system:{{ k8s_component }}"
+        hosts:
+          - "127.0.0.1"
+          - "127.0.1.1"
+          - "127.0.1.6"
+          - "localhost"
+          - "{{ k8s_component }}.default"
+          - "{{ k8s_component }}.default.svc"
+          - "{{ k8s_component }}.default.svc.cluster"
+          - "{{ k8s_component }}.default.svc.cluster.local"
+          - "{{ ansible_default_ipv4.address }}"
+          - "{{ inventory_hostname }}"
+      profile: server
+      ca: root
+
+  kubelet:
+    - csr:
+        CN: "system:node:{{ inventory_hostname }}"
+        names:
+          - O: "system:nodes"
+      profile: client
+      ca: root
+
+  etcd:
+    - csr:
+        CN: etcd
+      ca_new: true
+
+    - csr:
+        CN: "system:{{ k8s_component }}-healthcheck-client"
+      profile: client
+      ca: etcd
+
+    - csr:
+        CN: "system:{{ k8s_component }}-peer"
+        hosts:
+          - "127.0.0.1"
+          - "127.0.1.1"
+          - "127.0.1.6"
+          - "localhost"
+          - "{{ ansible_default_ipv4.address }}"
+          - "{{ inventory_hostname }}"
+      profile: peer
+      ca: etcd
+
+    - csr:
+        CN: "system:{{ k8s_component }}-server"
+        hosts:
+          - "127.0.0.1"
+          - "127.0.1.1"
+          - "127.0.1.6"
+          - "localhost"
+          - "{{ ansible_default_ipv4.address }}"
+          - "{{ inventory_hostname }}"
+      profile: server
+      ca: etcd
+
+  # mesh:
+  #   - csr:
+  #       CN: mesh
+  #     ca_new: true
+
+  #   - csr:
+  #       CN: "externalworkload"
+  #       hosts:
+  #         - "127.0.0.1"
+  #         - "127.0.1.1"
+  #         - "127.0.1.6"
+  #         - "localhost"
+  #         - "10.146.248.144"
+  #         - "10.146.248.160"
+  #     profile: client
+  #     ca: mesh
+
+  #   - csr:
+  #       CN: "externalworkload-server"
+  #       hosts:
+  #         - "127.0.0.1"
+  #         - "127.0.1.1"
+  #         - "127.0.1.6"
+  #         - "localhost"
+  #         - "pfm-stage-2.mesh.cilium.io"
+  #         - "pfm-stage-1.mesh.cilium.io"
+  #     profile: client
+  #     ca: mesh

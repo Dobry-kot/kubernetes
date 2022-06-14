@@ -6,3 +6,16 @@ env/hosts
 key.json
 scripts/*
 scripts/delete.sh
+plays/helpers.md
+ansible/plays/helpers.md
+terraform/providers.tf
+terraform/.terraform/providers/*
+terraform/terraform.tfstate.backup
+terraform/terraform.tfstate
+ansible/scripts/delete.sh
+ansible/scripts/restart.sh
+ansible/scripts/test.sh
+packer/image.json
+pulumi/Pulumi.dev.yaml
+terraform/.terraform.lock.hcl
+terraform/.terraform.tfstate.lock.info

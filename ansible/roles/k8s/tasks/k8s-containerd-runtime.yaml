@@ -1,0 +1,70 @@
+- block:
+    - name: Create a directory if it does not exist
+      vars:
+        data_plane_basic_dirs:
+          - /root/containerd
+        all_dirs: "{{ data_plane_basic_dirs }}"
+      ansible.builtin.file:
+        path: "{{ k8s_component_path }}"
+        state: directory
+        mode: '0775'
+      loop: "{{ all_dirs }}"
+      loop_control:
+          loop_var: k8s_component_path
+
+    - name: DOWNLOAD BASIC TAR K8S-COMPONENTS.
+      ansible.builtin.unarchive:
+        src: "{{ k8s_component_tar.url }}"
+        dest: "{{ k8s_component_tar.path }}"
+        remote_src: yes
+      loop:
+        - url: https://github.com/kubernetes-sigs/cri-tools/releases/download/v{{ cri_tool_version }}/crictl-v{{ cri_tool_version }}-linux-amd64.tar.gz
+          path: /usr/bin/
+        - url: https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/containerd-{{ containerd_version }}-linux-amd64.tar.gz
+          path: /root/containerd
+      loop_control:
+          loop_var: k8s_component_tar
+
+    - name: DOWNLOAD BASIC BINARY K8S-COMPONENTS.
+      get_url:
+        url: "{{ k8s_component_bin.url }}"
+        dest: "{{ k8s_component_bin.path }}"
+        mode: 0775
+      loop:
+        - url: https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/runc.amd64
+          path: /usr/bin/runc
+      loop_control:
+          loop_var: k8s_component_bin
+      tags:
+        - update_pkg
+
+    - name: FIND ALL CONTAINERD COMPONENTS. 
+      find:
+        paths: /root/containerd/bin/
+      register: containerd_components
+      tags:
+        - update_containerd
+
+    - name: COPY CONTAINERD COMPONENT BY FOLDERS.
+      copy:
+        src: "{{ containerd_component.path }}"
+        dest: /usr/bin/
+        mode: 0775
+        remote_src: true
+      loop: "{{ containerd_components.files }}"
+      loop_control:
+        loop_var: containerd_component
+      tags:
+        - update_containerd
+
+    - name: ADD NEW SERVICES.
+      vars:
+        services_list:
+          - containerd.service
+      import_role:
+        name: k8s
+        tasks_from: k8s-service-create.yaml
+      when: master_scheduled | bool
+      tags:
+        - update_containerd
+  

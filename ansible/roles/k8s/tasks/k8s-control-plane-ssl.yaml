@@ -1,0 +1,24 @@
+- name: BLOCK WITHOUT PACKER.
+  block:
+    - name: CREATE CERTS.
+      vars:
+        k8s_component: kubernetes
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificates-new.yaml
+        apply:
+          tags:
+            - kubernetes_ssl
+      loop: "{{ certificates[k8s_component] }}"
+      loop_control:
+        loop_var: certificate_requet
+      tags:
+        - kubernetes_ssl
+
+- name: SETUP BASIC CA.
+  import_role:
+    name: k8s
+    tasks_from: k8s-kubelet-ssl.yaml
+  tags:
+    - kubelet_ssl_cp
+    - update_cp_ssl

@@ -1,0 +1,105 @@
+---
+- name: SETUP ETCD.
+  vars:
+    k8s_component: etcd
+  block:
+    - name: INSTALL BASIC TAR K8S-CP-COMPONENTS.
+      block:
+        - name: DOWNLOAD BASIC TAR K8S-CP-COMPONENTS.
+          ansible.builtin.unarchive:
+            src: "{{ k8s_component_tar.url }}"
+            dest: "{{ k8s_component_tar.path }}"
+            remote_src: yes
+          loop:
+            - url: "{{ build[k8s_component].bin.path }}/v{{ build[k8s_component].bin.version }}/etcd-v{{ build[k8s_component].bin.version }}-linux-{{ arch }}.tar.gz"
+              path: /root
+          loop_control:
+              loop_var: k8s_component_tar
+
+        - name: CREATE A REMOTE FILE WITH FOUND CONTENT. 
+          ansible.builtin.copy:
+            src: /root/etcd-v{{ etcd_build.bin.version }}-linux-{{ arch }}/{{ component_bin }}
+            dest: "{{ default_path_bin }}/{{ component_bin }}"
+            remote_src: true
+            mode: 0775
+          loop:
+            - etcd
+            - etcdctl
+            - etcdutl
+          loop_control:
+            loop_var: component_bin
+      when: setup_cluster_type == 'service'
+      tags:
+        - etcd_bin
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: "{{ k8s_component_path }}"
+        state: directory
+        mode: '0775'
+      loop:
+        - "{{ default_path_kubernetes }}/{{ k8s_component }}"
+        - "{{ default_path_pki_certs }}/{{ k8s_component }}"
+      loop_control:
+          loop_var: k8s_component_path
+          
+    - name: CREATE CERTS.
+      include_role:
+        name: k8s
+        tasks_from: k8s-certificates-new.yaml
+        apply:
+          tags:
+            - etcd_ssl
+            - update_cp_ssl
+      when: not packer_builder is defined
+      loop: "{{ certificates[k8s_component] }}"
+      loop_control:
+        loop_var: certificate_requet
+      tags:
+        - etcd_ssl
+        - update_cp_ssl
+
+    - name: BLOCK SERVICE CONFIGUR.
+      block:
+        - name: COPY CONFIGS.
+          ansible.builtin.template:
+            src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
+            dest: "{{ config.path | default(default_path_kubernetes) }}/{{ k8s_component }}/{{ config.name.split('.j2')[0] }}"
+            owner: root
+            group: root
+            mode: '0775'
+          loop:
+            - name: service-args-custom.env.j2
+              folder: "{{ k8s_component }}"
+          loop_control:
+              loop_var: config
+          tags:
+            - etcd_service_update
+
+        - name: ADD NEW SERVICES.
+          vars:
+            services_list:
+              - etcd.service
+          import_role:
+            name: k8s
+            tasks_from: k8s-service-create.yaml
+          when: master_scheduled | bool
+          tags:
+            - etcd_service_update
+      when: setup_cluster_type == 'service'
+
+    - name: COPY MANIFESTS.
+      ansible.builtin.template:
+        src: "configs/{{ config.folder | default('') }}/{{ config.name }}"
+        dest: "{{ config.path | default(default_path_kubernetes) }}/manifests/{{ config.name.split('.j2')[0] }}"
+        owner: root
+        group: root
+        mode: '0775'
+      loop:
+        - name: etcd.yaml.j2
+          folder: "{{ k8s_component }}"
+      loop_control:
+          loop_var: config
+      tags:
+        - etcd_manifest_update
+      when: setup_cluster_type == 'static-pod'

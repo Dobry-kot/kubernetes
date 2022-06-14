@@ -1,0 +1,13 @@
+[Unit]
+Description=Vault secret management tool
+After=consul.service
+
+
+[Service]
+PermissionsStartOnly=true
+ExecStart=/usr/bin/vault server -config=/var/lib/vault/vault.hcl -log-level=debug
+Restart=on-failure
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target

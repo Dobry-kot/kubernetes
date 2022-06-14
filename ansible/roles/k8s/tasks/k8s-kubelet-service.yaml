@@ -1,0 +1,75 @@
+---
+- name: SETUP KUBE-SCHEDULER.
+  vars:
+    k8s_component: kubelet
+  block:
+    - name: DOWNLOAD BASIC BINARY K8S-COMPONENTS.
+      get_url:
+        url: "{{ k8s_component_bin.url }}"
+        dest: "{{ k8s_component_bin.path }}"
+        mode: 0775
+      loop:
+        - url: "{{ build[k8s_component].bin.path }}/v{{ build[k8s_component].bin.version }}/bin/linux/{{ arch }}/{{ k8s_component }}"
+          path: "{{ default_path_bin }}"
+        - url: https://storage.googleapis.com/kubernetes-release/release/v{{ k8s_version }}/bin/linux/amd64/kubectl
+          path: /usr/bin/
+      loop_control:
+          loop_var: k8s_component_bin
+          
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: "{{ k8s_component_path }}"
+        state: directory
+        mode: '0775'
+      loop:
+        - "{{ default_path_kubernetes }}/{{ k8s_component }}"
+        - "{{ default_path_kubelet }}/pki"
+        - "{{ default_path_pki_certs }}/{{ k8s_component }}"
+        - "{{ default_path_systemd }}/kubelet.service.d"
+      loop_control:
+          loop_var: k8s_component_path
+
+    - name: CONFIGS BLOCK.
+      block:
+        - name: LIST BASIC CONFIGS
+          set_fact:
+            basic_configs_in_copy:
+            - name: kubeconfig.j2
+              kubeconfig_cert: system:node:{{ inventory_hostname }}
+              path_abs: "{{ default_path_kubernetes }}/{{ k8s_component }}/kubeconfig"
+            - name: service-args-custom.env.j2
+              folder: "{{ k8s_component }}"
+            - name: config.yaml.j2
+              folder: "{{ k8s_component }}"
+            - name: 10-kubeadm.conf.j2
+              path_abs: "{{ default_path_systemd }}/kubelet.service.d/10-kubeadm.conf"
+              folder: "{{ k8s_component }}/kubelet.service.d"
+
+        - name: LIST ALL CONFIGS
+          set_fact:
+            configs_in_copy: "{{ basic_configs_in_copy + bootstrap_configs_in_copy | default([]) }}"
+
+        - name: COPY CONFIGS.
+          include_role:
+            name: k8s
+            tasks_from: k8s-copy-configs.yaml
+            apply:
+              tags:
+                - kubelet_configs_update
+                - kubelet_service_update
+      tags:
+        - kubelet_configs_update
+        - kubelet_service_update
+      
+    - name: ADD NEW SERVICES.
+      vars:
+        services_list:
+          - "{{ k8s_component }}.service"
+      include_role:
+        name: k8s
+        tasks_from: k8s-service-create.yaml
+        apply:
+          tags: 
+            - kubelet_service_update
+      tags:
+        - kubelet_service_update

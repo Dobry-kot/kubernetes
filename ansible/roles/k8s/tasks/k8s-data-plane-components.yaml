@@ -1,0 +1,32 @@
+- block:
+
+  - name: SETUP BASIC CRI.
+    import_role:
+      name: k8s
+      tasks_from: k8s-containerd-runtime.yaml
+    when: basic_cri == "containerd"
+    tags:
+      - basic_cri
+
+  - name: SETUP BASIC CNI.
+    import_role:
+      name: k8s
+      tasks_from: k8s-cni-basic.yaml
+    tags:
+      - basic_cni
+
+  - name: SETUP KUBELET.
+    import_role:
+      name: k8s
+      tasks_from: k8s-kubelet-service.yaml
+    when: not cp_data_plane_install | bool 
+    tags:
+      - kubelet
+
+# - name: SETUP KUBEADM.
+#   import_role:
+#     name: k8s
+#     tasks_from: k8s-kubeadm.yaml
+#   when: kubeadm | bool and not cp_data_plane_install | bool
+#   tags:
+#     - kubeadm

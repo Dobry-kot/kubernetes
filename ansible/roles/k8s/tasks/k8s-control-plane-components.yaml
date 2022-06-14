@@ -1,0 +1,77 @@
+# - name: BLOCK WITHOUT PACKER.
+#   block:
+#     - name: CREATE CERTS.
+#       vars:
+#         k8s_component: kubernetes
+#       include_role:
+#         name: k8s
+#         tasks_from: k8s-certificates-new.yaml
+#         apply:
+#           tags:
+#             - kubernetes_ssl
+#       loop: "{{ certificates[k8s_component] }}"
+#       loop_control:
+#         loop_var: certificate_requet
+#       tags:
+#         - kubernetes_ssl
+
+#     - name: SETUP KUBELET.
+#       import_role:
+#         name: k8s
+#         tasks_from: k8s-kubelet-service.yaml
+#       when: cp_data_plane_install | bool
+#       tags:
+#         - kubelet
+
+#     - name: SETUP KUBEADM.
+#       import_role:
+#         name: k8s
+#         tasks_from: k8s-kubeadm.yaml
+#       when: kubeadm | bool and cp_data_plane_install | bool
+#       tags:
+#         - kubeadm
+#   when: not packer_builder is defined
+
+- name: SETUP BASIC CA.
+  import_role:
+    name: k8s
+    tasks_from: k8s-control-plane-ssl.yaml
+  tags:
+    - basic_ca
+    - update_cp_ssl
+
+- name: SETUP ETCD CLUSTER.
+  import_role:
+    name: k8s
+    tasks_from: k8s-etcd.yaml
+  tags:
+    - etcd
+
+- name: SETUP KUBE-APISERVER.
+  import_role:
+    name: k8s
+    tasks_from: k8s-kube-apiserver.yaml
+  tags:
+    - kube_apiserver
+
+- name: SETUP KUBE-CONTROLLER-MANAGER.
+  import_role:
+    name: k8s
+    tasks_from: k8s-kube-controller-manager.yaml
+  tags:
+    - kube_controller_manager
+
+- name: SETUP KUBE-SCHEDULER.
+  import_role:
+    name: k8s
+    tasks_from: k8s-kube-scheduler.yaml
+  tags:
+    - kube_scheduler
+
+- name: SETUP BASIC MANIFESTS.
+  import_role:
+    name: k8s
+    tasks_from: k8s-manifests-update.yaml
+  tags:
+    - kube_manifests
+

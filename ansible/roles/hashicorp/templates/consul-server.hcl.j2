@@ -1,0 +1,23 @@
+{%- set list_members = [] -%}
+{%- for member in groups.masters -%}
+{{- list_members.append(hostvars[member].ansible_default_ipv4.address) -}}
+{%- endfor -%}
+{
+  "server": true,
+  "node_name": "{{ inventory_hostname }}",
+  "datacenter": "dc1",
+  "data_dir": "/var/lib/consul/data",
+  "bind_addr": "0.0.0.0",
+  "client_addr": "0.0.0.0",
+  "advertise_addr": "{{ ansible_default_ipv4.address }}",
+  "bootstrap_expect": 3,
+  "retry_join": ["{{ list_members | join('","') }}"]
+  "log_level": "DEBUG",
+  "enable_syslog": true,
+  "acl_enforce_version_8": false,
+  "acl_master_token": "secret"
+}
+
+"ui_config": {
+  "enabled": "true"
+}
