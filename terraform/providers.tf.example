@@ -1,0 +1,20 @@
+terraform {
+  required_providers {
+    yandex = {
+      source = "yandex-cloud/yandex"
+    }
+  }
+  required_version = ">= 0.13"
+}
+
+provider "yandex" {
+  token     = ":"
+  cloud_id  = ":"
+  folder_id = ":"
+  zone      = "ru-central1-a"
+}
+
+provider "vault" {
+    address = "http://127.0.0.1:8200"
+    token = ":"
+}
