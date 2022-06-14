@@ -1,0 +1,43 @@
+#cloud-config
+users:
+  - name: dkot
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: users, admin
+    shell: /bin/bash
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ ssh_key }
+
+write_files:
+  - path: /tmp/vault-token
+    owner: root:root
+    permissions: '0644'
+    content: |
+        client_token: ${temporary_token}
+
+  - path: /tmp/vault-config
+    owner: root:root
+    permissions: '0644'
+    content: |
+        ---
+        base_domain: ${ cluster_name }.${ base_domain }
+        path: ${ pki_path }
+        certificates:
+        - csr:
+            CN: ${ cluster_name }.${ base_domain }
+            description: "intermediant CA ${ cluster_name }"
+            ca_new: true
+            path: /etc/kubernetes/pki/ca/root-ca
+        - csr:
+            CN: "system:etcd-peer" # common name
+            description: "bla"
+            ips:
+                - "127.0.0.1"
+                - "127.0.1.1"
+                - "127.0.1.6"
+            hosts:
+                - "localhost"
+            profile: peer
+            ca: pki/etcd
+            path: /etc/kubernetes/pki/certs/etcd/system:etcd-peer
+
