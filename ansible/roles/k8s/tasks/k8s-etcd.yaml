@@ -12,13 +12,13 @@
             remote_src: yes
           loop:
             - url: "{{ build[k8s_component].bin.path }}/v{{ build[k8s_component].bin.version }}/etcd-v{{ build[k8s_component].bin.version }}-linux-{{ arch }}.tar.gz"
-              path: /root
+              path: /tmp
           loop_control:
               loop_var: k8s_component_tar
 
         - name: CREATE A REMOTE FILE WITH FOUND CONTENT. 
           ansible.builtin.copy:
-            src: /root/etcd-v{{ etcd_build.bin.version }}-linux-{{ arch }}/{{ component_bin }}
+            src: /root/etcd-v{{ build.etcd.bin.version }}-linux-{{ arch }}/{{ component_bin }}
             dest: "{{ default_path_bin }}/{{ component_bin }}"
             remote_src: true
             mode: 0775

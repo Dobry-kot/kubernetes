@@ -1,29 +1,61 @@
-path "${pki_path}/issue/${cluster_name}-base-role" {
+%{ for component, content in pki_path.root_ca  ~}
+path "${content.path}/root/sign-intermediate" {
     capabilities = ["create", "update"]
+}
+
+path "${content.path}/root/generate/internal" {
+    capabilities = ["create", "update"]
+}
+%{ endfor ~}
+
+%{ for component, content in pki_path.intermediate  ~}
+
+path "${content.path}/issue/*" {
+    capabilities = ["create", "update","patch"]
+}
+
+path "${content.path}/certs" {
+    capabilities = ["list"]
+}
+
+path "${content.path}/revoke" {
+    capabilities = ["create", "update"]
+}
+
+path "${content.path}/tidy" {
+    capabilities = ["create", "update"]
+}
+
+path "${content.path}/intermediate/*" {
+    capabilities = ["create", "update"]
+}
+
+path "${content.path}/intermediate/generate/internal" {
+    capabilities = ["create", "update", "read"]
+}
+
+
+path "${content.path}/root/sign-intermediate" {
+    capabilities = ["create", "update"]
+}
+
+path "${content.path}/cert/ca" {
+    capabilities = ["read"]
+}
+%{ endfor ~}
+
+path "cluster-1/kv/*" {
+    capabilities = ["create", "update"]
+}
+
+path "auth/clusters/cluster-1/approle/role/test-role/*" {
+    capabilities = ["create", "update", "read"]
 }
 
 path "${pki_path_root}/root/sign-intermediate" {
     capabilities = ["create", "update"]
 }
 
-path "${pki_path}/certs" {
-    capabilities = ["list"]
-}
-
-path "${pki_path}/revoke" {
-    capabilities = ["create", "update"]
-}
-
-path "${pki_path}/tidy" {
-    capabilities = ["create", "update"]
-}
-path "${pki_path}/intermediate/*" {
-    capabilities = ["create", "update"]
-}
-
-path "${pki_path_root}/cert/ca" {
-    capabilities = ["read"]
-}
 
 path "auth/token/renew" {
     capabilities = ["update"]
@@ -31,4 +63,8 @@ path "auth/token/renew" {
 
 path "auth/token/renew-self" {
     capabilities = ["update"]
+}
+
+path "${base_vault_path_kv}/*" {
+    capabilities = ["create", "update", "read"]
 }

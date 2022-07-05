@@ -33,18 +33,6 @@
       loop_control:
           loop_var: hashicorp_component_bin
 
-    - name: RESTART SERVICE.
-      service:
-        name: "{{ service_name }}"
-        state: stopped
-        enabled: true
-      loop: 
-      - consul.service
-      - vault.service
-      loop_control:
-          loop_var: service_name
-      tags:
-        - update_service
 
     - name: Delete content & directory
       file:
@@ -114,14 +102,14 @@
       tags:
         - update_service
 
-    # - name: RESTART SERVICE.
-    #   service:
-    #     name: "{{ service_name }}"
-    #     state: "{{ service_state | default('restarted') }}"
-    #     enabled: true
-    #   loop: 
-    #   - vault.service
-    #   loop_control:
-    #       loop_var: service_name
-    #   tags:
-    #     - update_service
+    - name: RESTART SERVICE.
+      service:
+        name: "{{ service_name }}"
+        state: "{{ service_state | default('restarted') }}"
+        enabled: true
+      loop: 
+      - vault.service
+      loop_control:
+          loop_var: service_name
+      tags:
+        - update_service

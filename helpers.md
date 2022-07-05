@@ -1,16 +1,16 @@
 
 
-HOST_1=51.250.3.242
-HOST_2=51.250.5.96
-HOST_3=51.250.11.235
+HOST_1=firecube-master-0.example.com
+HOST_2=firecube-master-1.example.com
+HOST_3=firecube-master-2.example.com
 
-ENDPOINTS=10.146.248.144:2379,10.146.248.160:2379
+ENDPOINTS=$HOST_1:2379,$HOST_2:2379,$HOST_3:2379
 etcdctl \
 --write-out=table \
 --endpoints=$ENDPOINTS \
---cert /var/lib/etcd-secrets/tls.crt \
---key /var/lib/etcd-secrets/tls.key \
---cacert /var/lib/etcd-secrets/ca.crt \
+--cert /etc/kubernetes/pki/certs/etcd/system:etcd-healthcheck-client.pem \
+--key /etc/kubernetes/pki/certs/etcd/system:etcd-healthcheck-client-key.pem \
+--cacert /etc/kubernetes/pki/ca/etcd-ca.pem \
 endpoint status
 
 

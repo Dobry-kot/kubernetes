@@ -10,7 +10,7 @@
   "bind_addr": "0.0.0.0",
   "client_addr": "0.0.0.0",
   "advertise_addr": "{{ ansible_default_ipv4.address }}",
-  "bootstrap_expect": 3,
+  "bootstrap_expect": {{ list_members | length }},
   "retry_join": ["{{ list_members | join('","') }}"]
   "log_level": "DEBUG",
   "enable_syslog": true,

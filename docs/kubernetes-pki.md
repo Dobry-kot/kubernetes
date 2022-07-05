@@ -14,7 +14,7 @@
 
 ### CA
 | CA  | Type  |Root CA| Description | 
-|:---:|:-----:|:-----:|:-----------:|
+|:---|:-----|:-----|:-----------|
 | kubernetes | intermediate | root | Основной CA кластера |
 | etcd | intermediate | root | Основной CA ETCD кластера|
 | fron-proxy | intermediate | root | CA для [Aggregation Layer](https://kubernetes.io/docs/tasks/extend-kubernetes/configure-aggregation-layer/)|

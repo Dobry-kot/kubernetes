@@ -2,9 +2,9 @@
 bastion ansible_host=localhost
 
 [masters]
-cl1gprn7aj4u1ot59jhm-ocir ansible_host=51.250.95.105
-cl1gprn7aj4u1ot59jhm-uman ansible_host=51.250.80.210
-cl1gprn7aj4u1ot59jhm-edem ansible_host=51.250.87.241
+firecube-master-0.example.com ansible_host=51.250.1.64
+firecube-master-1.example.com ansible_host=178.154.195.231
+firecube-master-2.example.com ansible_host=51.250.36.51
 
 
 [workers]

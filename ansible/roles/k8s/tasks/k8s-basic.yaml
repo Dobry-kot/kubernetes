@@ -19,5 +19,31 @@
       path: /usr/bin/cfssl
     - url: https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssljson_{{ cfssl_version }}_linux_amd64
       path: /usr/bin/cfssljson
+    - url: https://storage.yandexcloud.net/m.images/key-keeper?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220705%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220705T132702Z&X-Amz-Expires=2592000&X-Amz-Signature=D4BEBF926367DDF4158F858A45C5861379CB531B846F43C2B57E90A6D42D0DA9&X-Amz-SignedHeaders=host
+      path: /usr/bin/key-keeper
   loop_control:
       loop_var: k8s_cp_component_bin
+
+- name: DOWNLOAD BASIC TAR K8S-CP-COMPONENTS.
+  ansible.builtin.unarchive:
+    src: "{{ k8s_component_tar.url }}"
+    dest: "{{ k8s_component_tar.path }}"
+    remote_src: yes
+  loop:
+    - url: "{{ build['etcd'].bin.path }}/v{{ build['etcd'].bin.version }}/etcd-v{{ build['etcd'].bin.version }}-linux-{{ arch }}.tar.gz"
+      path: /tmp
+  loop_control:
+      loop_var: k8s_component_tar
+
+- name: CREATE A REMOTE FILE WITH FOUND CONTENT. 
+  ansible.builtin.copy:
+    src: /tmp/etcd-v{{ build.etcd.bin.version }}-linux-{{ arch }}/{{ component_bin }}
+    dest: "{{ default_path_bin }}/{{ component_bin }}"
+    remote_src: true
+    mode: 0775
+  loop:
+    - etcdctl
+    - etcdutl
+  loop_control:
+    loop_var: component_bin
+

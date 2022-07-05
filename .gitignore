@@ -19,3 +19,6 @@ packer/image.json
 pulumi/Pulumi.dev.yaml
 terraform/.terraform.lock.hcl
 terraform/.terraform.tfstate.lock.info
+ansible/terraform.tfstate
+ansible/packer/image.json
+terraform/templates/cloud-init copy.tftpl

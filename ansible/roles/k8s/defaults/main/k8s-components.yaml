@@ -14,7 +14,7 @@ kubernetes_release_image_path: k8s.gcr.io
 build:
   etcd:
     bin: 
-      path: https://github.com/etcd-io/etcd/releases/download
+      path: https://github.com/etcd-io/etcd/releases/download/
       version: "3.5.4"
     image: 
       path: "{{ kubernetes_release_image_path }}/etcd"

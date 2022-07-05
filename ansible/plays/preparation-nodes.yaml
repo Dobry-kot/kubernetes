@@ -1,8 +1,6 @@
 ---
 - name: SETUP BASIC SYSTEM.
   hosts: all
-  roles:
-    - packages
   tasks:
     - name: SETUP COMPONENTS.
       block:
@@ -56,3 +54,14 @@
           when: setup_cluster_type == "static-pod"
           tags:
             - kubelet_service
+
+        - name: pull an image
+          shell:
+            ctr image pull {{ component_image }}
+          loop:
+            - k8s.gcr.io/etcd:3.5.3-0
+            - k8s.gcr.io/kube-apiserver:v1.23.5
+          loop_control:
+            loop_var: component_image
+          tags:
+            - pull
