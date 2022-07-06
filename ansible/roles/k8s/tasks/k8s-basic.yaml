@@ -19,7 +19,7 @@
       path: /usr/bin/cfssl
     - url: https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssljson_{{ cfssl_version }}_linux_amd64
       path: /usr/bin/cfssljson
-    - url: https://storage.yandexcloud.net/m.images/key-keeper?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220705%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220705T132702Z&X-Amz-Expires=2592000&X-Amz-Signature=D4BEBF926367DDF4158F858A45C5861379CB531B846F43C2B57E90A6D42D0DA9&X-Amz-SignedHeaders=host
+    - url: https://storage.yandexcloud.net/m.images/key-keeper?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220706%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220706T102128Z&X-Amz-Expires=3600&X-Amz-Signature=918E3BF1282E21140FE1F8374D6E18143087A0C2FB1BB345C90910CE39FEBA6D&X-Amz-SignedHeaders=host
       path: /usr/bin/key-keeper
   loop_control:
       loop_var: k8s_cp_component_bin

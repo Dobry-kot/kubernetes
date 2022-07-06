@@ -22,3 +22,9 @@ terraform/.terraform.tfstate.lock.info
 ansible/terraform.tfstate
 ansible/packer/image.json
 terraform/templates/cloud-init copy.tftpl
+*.tfstate
+*.rfstate*
+.terraform.lock.hcl
+.terraform
+providers.tf
+terraform/vault-base/terraform.tfstate.backup

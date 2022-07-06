@@ -1,22 +1,22 @@
 ##### ROOT #####################
 ### ->
-resource "vault_pki_secret_backend_root_cert" "core_root" {
-  backend              = vault_mount.core_root_ca.path
-  type                 = "internal"
-  common_name          = "Root CA"
-  ttl                  = 321408000
-  format               = "pem"
-  private_key_format   = "der"
-  key_type             = "rsa"
-  key_bits             = 4096
-  exclude_cn_from_sans = true
-  province             = "CA"
-}
+# resource "vault_pki_secret_backend_root_cert" "core_root" {
+#   backend              = vault_mount.core_root_ca.path
+#   type                 = "internal"
+#   common_name          = "Root CA"
+#   ttl                  = 321408000
+#   format               = "pem"
+#   private_key_format   = "der"
+#   key_type             = "rsa"
+#   key_bits             = 4096
+#   exclude_cn_from_sans = true
+#   province             = "CA"
+# }
 
 ##### K8S INTERMEDIATE ROOT #####################
 ### ->
 resource "vault_pki_secret_backend_root_cert" "root" {
-  depends_on           = [vault_pki_secret_backend_root_cert.core_root]
+  # depends_on           = [vault_pki_secret_backend_root_cert.core_root]
   for_each             = local.ssl.root_ca
   backend              = "${vault_mount.root_ca[each.key].path}"
   type                 = "${each.value.type}"

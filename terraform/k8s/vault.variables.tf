@@ -18,7 +18,7 @@ locals {
           key_type                           = "rsa"
           no_store                           = false
           require_cn                         = false
-          ttl                                = 3600
+          ttl                                = 31540000
           use_csr_common_name                = true   
         }
     }
@@ -66,6 +66,7 @@ locals {
               "kubernetes.default.svc",
               "kubernetes.default.svc.cluster",
               "kubernetes.default.svc.cluster.local",
+              "api.${var.cluster_name}.${var.base_domain}"
               ]
             organization                       = []
             client_flag                        = false
@@ -149,7 +150,8 @@ locals {
             key_usage                          = ["DigitalSignature","KeyAgreement","ServerAuth"]
             allowed_domains                    = [
               "system:etcd-server",
-              "localhost"
+              "localhost",
+              "*.${var.cluster_name}.${var.base_domain}"
               ]
             organization                       = []
             client_flag                        = false
@@ -162,7 +164,8 @@ locals {
             key_usage                          = ["DigitalSignature","KeyAgreement","ServerAuth","ClientAuth"]
             allowed_domains                    = [
               "system:etcd-peer",
-              "localhost"
+              "localhost",
+              "*.${var.cluster_name}.${var.base_domain}"
               ]
             organization                       = []
             client_flag                        = true

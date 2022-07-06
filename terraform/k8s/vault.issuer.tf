@@ -94,10 +94,3 @@ resource "vault_pki_secret_backend_role" "kubernetes-front-proxy" {
     # allowed_other_sans                  = "${each.value.allowed_other_sans}"
 }
 
-output "policies2" {
-
-    value = "${local.ssl.intermediate["kubernetes"].issuers}"
-}
-
-
-

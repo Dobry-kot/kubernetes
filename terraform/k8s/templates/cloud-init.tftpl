@@ -145,8 +145,8 @@ write_files:
             - --kubelet-timeout=5s
             - --v=2
             - --service-cluster-ip-range=29.64.0.0/16
-            - --secure-port=6443
-            - --advertise-address=29.64.0.1
+            # - --secure-port=6443
+            # - --advertise-address=29.64.0.1
             - --requestheader-allowed-names=front-proxy-client
             - --requestheader-extra-headers-prefix=X-Remote-Extra-
             - --requestheader-group-headers=X-Remote-Group
@@ -302,7 +302,7 @@ write_files:
             - --bind-address=0.0.0.0
             - --secure-port=10257
             - --allocate-node-cidrs=true
-            - --cluster-cidr=29.64.0.0/16
+            # - --cluster-cidr=29.64.0.0/16
             - --cluster-name=kubernetes
             - --concurrent-deployment-syncs=5
             - --concurrent-endpoint-syncs=5
@@ -326,7 +326,7 @@ write_files:
             - --resource-quota-sync-period=5m0s
             - --terminated-pod-gc-threshold=0
             - --use-service-account-credentials=true
-            - --controllers=bootstrapsigner,tokencleaner,cloud-node-lifecycle,csrapproving,csrcleaner,csrsigning
+            - --controllers=*,bootstrapsigner,tokencleaner,cloud-node-lifecycle,csrapproving,csrcleaner,csrsigning
             - --authorization-always-allow-paths=/healthz,/metrics
             - --feature-gates=RotateKubeletServerCertificate=true
             - --v=2
@@ -617,29 +617,29 @@ write_files:
           client-certificate: /etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-kubelet-client.pem
           client-key: /etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-kubelet-client-key.pem
 
-  - path: /etc/kubernetes/kubelet/bootstrap-kubeconfig
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: v1
-      clusters:
-      - cluster:
-          certificate-authority: /etc/kubernetes/pki/ca/root-ca.pem
-          server: https://127.0.0.1:6443
-        name: bootstrap
-      contexts:
-      - context:
-          cluster: bootstrap
-          user: kubelet-bootstrap
-        name: bootstrap
-      current-context: bootstrap
-      kind: Config
-      preferences: {}
-      users:
-      - name: kubelet-bootstrap
-        user:
-          token: 255120.2e8de3467d070f20
+  # - path: /etc/kubernetes/kubelet/bootstrap-kubeconfig
+  #   owner: root:root
+  #   permissions: '0644'
+  #   content: |
+  #     ---
+  #     apiVersion: v1
+  #     clusters:
+  #     - cluster:
+  #         certificate-authority: /etc/kubernetes/pki/ca/root-ca.pem
+  #         server: https://127.0.0.1:6443
+  #       name: bootstrap
+  #     contexts:
+  #     - context:
+  #         cluster: bootstrap
+  #         user: kubelet-bootstrap
+  #       name: bootstrap
+  #     current-context: bootstrap
+  #     kind: Config
+  #     preferences: {}
+  #     users:
+  #     - name: kubelet-bootstrap
+  #       user:
+  #         token: 255120.2e8de3467d070f20
 
   - path: /etc/kubernetes/pki/ca/root-ca.pem
     owner: root:root
@@ -682,7 +682,7 @@ write_files:
           --cert-dir=/etc/kubernetes/pki/certs/kubelet
           --rotate-certificates=true
           --rotate-server-certificates=true
-          --anonymous-auth="true"
+          --anonymous-auth="false"
       "
 
   - path: /etc/kubernetes/pki/vault-config
@@ -695,28 +695,28 @@ write_files:
         bootstrap_token: "${temporary_token}"
         local_path_to_role_id: "role_id"
         local_path_to_secret_id: "secret_id"
-        approle_path: clusters/cluster-1/approle
+        approle_path: clusters/${cluster_name}/approle
         approle_name: test-role
         request_timeout: "10m"
       certificates:
-        vault_kv:   "clusters/cluster-1/kv"
+        vault_kv:   "clusters/${cluster_name}/kv"
         reissue_interval: "1h"
         intermediate_ca:
           - common_name: "kubernetes"
-            root_path_ca: "clusters/cluster-1/pki/root"
-            cert_path:  "clusters/cluster-1/pki/kubernetes"
+            root_path_ca: "clusters/${cluster_name}/pki/root"
+            cert_path:  "clusters/${cluster_name}/pki/kubernetes"
             host_path: "/etc/kubernetes/pki/ca/root-ca"
             exported_key: false
             generate: false
           - common_name: "etcd"
-            root_path_ca: "clusters/cluster-1/pki/root"
-            cert_path:  "clusters/cluster-1/pki/etcd"
+            root_path_ca: "clusters/${cluster_name}/pki/root"
+            cert_path:  "clusters/${cluster_name}/pki/etcd"
             host_path: "/etc/kubernetes/pki/ca/etcd-ca"
             exported_key: false
             generate: false
           - common_name: "front-proxy"
-            root_path_ca: "clusters/cluster-1/pki/root"
-            cert_path:  "clusters/cluster-1/pki/front-proxy"
+            root_path_ca: "clusters/${cluster_name}/pki/root"
+            cert_path:  "clusters/${cluster_name}/pki/front-proxy"
             host_path: "/etc/kubernetes/pki/ca/front-proxy-ca"
             exported_key: false
             generate: false
@@ -725,17 +725,17 @@ write_files:
           - common_name: "system:kube-apiserver-front-proxy-client"
             role: "front-proxy-client" # system_masters_client
             host_path: "/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-front-proxy-client"
-            cert_path: "clusters/cluster-1/pki/front-proxy"
+            cert_path: "clusters/${cluster_name}/pki/front-proxy"
 
           - common_name: "system:kube-apiserver-etcd-client"
             role: "etcd-client"
             host_path: "/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-etcd-client"
-            cert_path: "clusters/cluster-1/pki/etcd"
+            cert_path: "clusters/${cluster_name}/pki/etcd"
 
           - common_name: "system:kube-apiserver-server"
             role: "kube-apiserver"
             host_path: "/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-server"
-            cert_path: "clusters/cluster-1/pki/kubernetes"
+            cert_path: "clusters/${cluster_name}/pki/kubernetes"
             hosts:
               - "localhost"
               - "kubernetes"
@@ -743,26 +743,28 @@ write_files:
               - "kubernetes.default.svc"
               - "kubernetes.default.svc.cluster"
               - "kubernetes.default.svc.cluster.local"
+              - "api.${cluster_name}.${base_domain}"
             ips:
               - "127.0.0.1"
               - "127.0.1.1"
               - "127.0.1.6"
+              - "29.64.0.1"
 
           - common_name: "system:kube-apiserver-kubelet-client"
             role: "kube-apiserver-kubelet-client"
             host_path: "/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-kubelet-client"
-            cert_path: "clusters/cluster-1/pki/kubernetes"
+            cert_path: "clusters/${cluster_name}/pki/kubernetes"
 
           # KUBE-CONTROLLER-MANAGER -->
           - common_name: "system:kube-controller-manager"
             role: "kube-controller-manager-client"
-            host_path: "/etc/kubernetes/pki/certs/kube-controller-manager/system:kube-controller-manager"
-            cert_path: "clusters/cluster-1/pki/kubernetes"
+            host_path: "/etc/kubernetes/pki/certs/kube-controller-manager/system:kube-controller-manager-client"
+            cert_path: "clusters/${cluster_name}/pki/kubernetes"
 
           - common_name: "system:kube-controller-manager-server"
             role: "kube-controller-manager-server"
             host_path: "/etc/kubernetes/pki/certs/kube-controller-manager/system:kube-controller-manager-server"
-            cert_path: "clusters/cluster-1/pki/kubernetes"
+            cert_path: "clusters/${cluster_name}/pki/kubernetes"
             hosts:
               - "localhost"
               - "kube-controller-manager.default"
@@ -778,12 +780,12 @@ write_files:
           - common_name: "system:kube-scheduler"
             role: "kube-scheduler-client"
             host_path: "/etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-client"
-            cert_path: "clusters/cluster-1/pki/kubernetes"
+            cert_path: "clusters/${cluster_name}/pki/kubernetes"
 
           - common_name: "system:kube-scheduler-server"
             role: "kube-scheduler-server"
             host_path: "/etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-server"
-            cert_path: "clusters/cluster-1/pki/kubernetes"
+            cert_path: "clusters/${cluster_name}/pki/kubernetes"
             hosts:
               - "localhost"
               - "kube-scheduler.default"
@@ -794,25 +796,27 @@ write_files:
               - "127.0.0.1"
               - "127.0.1.1"
               - "127.0.1.6"
+              - "29.64.0.1"
 
             #   # KUBELET -->
-          - common_name: "system:node:firekube-master-0.cluster-1.example.com"
+          - common_name: "system:node:${ instance_name }.${base_domain}"
             role: "kubelet-client"
             host_path: "/etc/kubernetes/pki/certs/kubelet/current:kubelet"
-            cert_path: "clusters/cluster-1/pki/kubernetes"
+            cert_path: "clusters/${cluster_name}/pki/kubernetes"
 
           # ETCD -->
           - common_name: "system:etcd-healthcheck-client"
             role: "etcd-client"
             host_path: "/etc/kubernetes/pki/certs/etcd/system:etcd-healthcheck-client"
-            cert_path: "clusters/cluster-1/pki/etcd"
+            cert_path: "clusters/${cluster_name}/pki/etcd"
 
           - common_name: "system:etcd-peer"
             role: "etcd-peer"
             host_path: "/etc/kubernetes/pki/certs/etcd/system:etcd-peer"
-            cert_path: "clusters/cluster-1/pki/etcd"
+            cert_path: "clusters/${cluster_name}/pki/etcd"
             hosts:
               - "localhost"
+              - ${ instance_name }.${base_domain}
             ips:
               - "127.0.0.1"
               - "127.0.1.1"
@@ -821,16 +825,17 @@ write_files:
           - common_name: "system:etcd-server"
             role: "etcd-server"
             host_path: "/etc/kubernetes/pki/certs/etcd/system:etcd-server"
-            cert_path: "clusters/cluster-1/pki/etcd"
+            cert_path: "clusters/${cluster_name}/pki/etcd"
             hosts:
               - "localhost"
+              - "${ instance_name }.${base_domain}"
             ips:
               - "127.0.0.1"
               - "127.0.1.1"
               - "127.0.1.6"
 
       keys:
-        vault_kv: "clusters/cluster-1/kv"
+        vault_kv: "clusters/${cluster_name}/kv"
         rsa:
           - host_path: /etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-sa
             name: system:kube-apiserver-sa
