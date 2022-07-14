@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority: /etc/kubernetes/pki/ca/root-ca.pem
+    server: https://127.0.0.1:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: system:kube-scheduler
+  name: system:kube-scheduler@kubernetes
+current-context: system:kube-scheduler@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: system:kube-scheduler
+  user:
+    client-certificate: /etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-client.pem
+    client-key: /etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-client-key.pem

@@ -1,0 +1,27 @@
+apiVersion: key-keeper.fraima.io/v1beta
+kind: Certificate
+metadata:
+    annotations: 
+      key-keeper.fraima.io/locaPath:   hostPath
+      key-keeper.fraima.io/vaultSafe:  cert_path
+    labels: {}
+    name: system:kube-apiserver-front-proxy-client
+spec:
+  duration: 2160h
+  renewBefore: 360h
+  subject:
+    organizations: []
+  commonName: example.com
+  isIntermediate: false
+  usages:
+    - server auth
+    - client auth
+  dnsNames:
+    - example.com
+    - www.example.com
+  ipAddresses:
+    - 192.168.0.5
+  issuerRef:
+    name: roleName
+    path: "clusters/cluster-1/pki/root"
+status: {}

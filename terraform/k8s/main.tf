@@ -11,7 +11,8 @@ resource "yandex_vpc_subnet" "cluster-subnet" {
   for_each        = "${var.yc_availability_master_zones}"
   v4_cidr_blocks  = [each.value]
   zone            = "${each.key}"
-  network_id      = "${yandex_vpc_network.cluster-vpc.id}"
+  # network_id      = "${yandex_vpc_network.cluster-vpc.id}"
+  network_id      = "enpe4sv7df2a7sm5uksh"
   name            = "vpc-${each.key}-${var.cluster_name}" 
 }
 
@@ -22,7 +23,8 @@ resource "yandex_dns_zone" "zone1" {
   description = "desc"
   zone             = "${var.cluster_name}.${var.base_domain}."
   public           = false
-  private_networks = [yandex_vpc_network.cluster-vpc.id]
+  # private_networks = [yandex_vpc_network.cluster-vpc.id]
+  private_networks = ["enpe4sv7df2a7sm5uksh"]
 }
 
 resource "yandex_dns_recordset" "rs1" {

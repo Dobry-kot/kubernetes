@@ -13,3 +13,19 @@ metadata:
   name: bootstrap-token-{{ toke_id | b64decode | lower }}
   namespace: kube-system
 type: bootstrap.kubernetes.io/token
+
+
+---
+apiVersion: v1
+data:
+  auth-extra-groups: c3lzdGVtOmJvb3RzdHJhcHBlcnM6a3ViZWFkbTpkZWZhdWx0LW5vZGUtdG9rZW4=
+  expiration: "MjAyMi0xMC0xMFQwMzoyMjoxMVo="
+  token-id: "MjU1MTIw"
+  token-secret: "MmU4ZGUzNDY3ZDA3MGYyMA=="
+  usage-bootstrap-authentication: dHJ1ZQ==
+  usage-bootstrap-signing: dHJ1ZQ==
+kind: Secret
+metadata:
+  name: bootstrap-token-255120
+  namespace: kube-system
+type: bootstrap.kubernetes.io/token

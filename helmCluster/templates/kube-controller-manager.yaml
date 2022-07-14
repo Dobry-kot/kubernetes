@@ -1,0 +1,103 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-controller-manager
+    tier: control-plane
+  name: kube-controller-manager
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+      - kube-controller-manager
+    args:
+      - --tls-cert-file=/etc/kubernetes/pki/certs/kube-controller-manager/system:kube-controller-manager-server.pem 
+      - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-controller-manager/system:kube-controller-manager-server-key.pem 
+      - --client-ca-file=/etc/kubernetes/pki/ca/root-ca.pem 
+      - --cluster-signing-cert-file=/etc/kubernetes/pki/ca/root-ca.pem 
+      # - --cluster-signing-key-file=/etc/kubernetes/pki/ca/root-ca-key.pem 
+      - --requestheader-client-ca-file=/etc/kubernetes/pki/ca/front-proxy-ca.pem 
+      - --service-account-private-key-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-sa.pem
+      - --kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig 
+      - --authentication-kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig 
+      - --authorization-kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig
+      - --root-ca-file=/etc/kubernetes/pki/ca/root-ca.pem
+      - --bind-address=0.0.0.0
+
+  {{- with .Values.pod.kubeScheduler }}
+    {{- with .containers.kubeScheduler }}
+    {{- toYaml .args | nindent 6 }}
+    image: {{ .image }}
+    imagePullPolicy: {{ .imagePullPolicy }}
+    resources:
+      {{- toYaml .resources | nindent 6 }}
+    livenessProbe: 
+      {{- toYaml .livenessProbe | nindent 6 }}
+    startupProbe:
+      {{- toYaml .startupProbe | nindent 6 }}
+    {{- end }}
+    volumeMounts:
+    - mountPath: /etc/ssl/certs
+      name: ca-certs
+      readOnly: true
+    - mountPath: /etc/ca-certificates
+      name: etc-ca-certificates
+      readOnly: true
+    - mountPath: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+      name: flexvolume-dir
+    - mountPath: /etc/kubernetes/pki/certs
+      name: k8s-certs
+      readOnly: true
+    - mountPath: /etc/kubernetes/pki/ca
+      name: k8s-ca
+      readOnly: true
+    - mountPath: /etc/kubernetes/kube-controller-manager
+      name: k8s-kube-controller-manager-configs
+      readOnly: true
+    - mountPath: /usr/local/share/ca-certificates
+      name: usr-local-share-ca-certificates
+      readOnly: true
+    - mountPath: /usr/share/ca-certificates
+      name: usr-share-ca-certificates
+      readOnly: true
+  hostNetwork: {{ .hostNetwork }}
+  priorityClassName: {{ .priorityClassName }}
+  securityContext: 
+    {{- toYaml .securityContext | nindent 6 }}
+  {{- end }} 
+  volumes:
+  - hostPath:
+      path: /etc/ssl/certs
+      type: DirectoryOrCreate
+    name: ca-certs
+  - hostPath:
+      path: /etc/ca-certificates
+      type: DirectoryOrCreate
+    name: etc-ca-certificates
+  - hostPath:
+      path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+      type: DirectoryOrCreate
+    name: flexvolume-dir
+  - hostPath:
+      path: /etc/kubernetes/pki/certs
+      type: DirectoryOrCreate
+    name: k8s-certs
+  - hostPath:
+      path: /etc/kubernetes/pki/ca
+      type: DirectoryOrCreate
+    name: k8s-ca
+  - hostPath:
+      path: /etc/kubernetes/kube-controller-manager
+      type: DirectoryOrCreate
+    name: k8s-kube-controller-manager-configs
+  - hostPath:
+      path: /usr/local/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-local-share-ca-certificates
+  - hostPath:
+      path: /usr/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-share-ca-certificates
+status: {}

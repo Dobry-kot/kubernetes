@@ -20,7 +20,7 @@ k8sServicePort: 6443
 ipam:
   mode: "cluster-pool"
   operator:
-    clusterPoolIPv4PodCIDR: 10.220.2.0/16
+    clusterPoolIPv4PodCIDR: 10.220.0.0/16
     clusterPoolIPv4MaskSize: 26
 
 containerRuntime:
@@ -28,8 +28,8 @@ containerRuntime:
   socketPath: /run/containerd/containerd.sock
 
 cluster:
-  name: cluster-1
-  id: 11
+  name: cluster-2
+  id: 12
 
 hubble:
   enabled: true
@@ -43,7 +43,7 @@ hubble:
         enabled: true
 l2NeighDiscovery:
   enabled: false
-tunnel: vxlan
+tunnel: disabled
 prometheus:
   enabled: true
   port: 9090
@@ -63,13 +63,103 @@ hostPort:
 hostServices:
     enabled: true
     hostNamespaceOnly: true
+bgp:
+  enabled: true
+  announce:
+    loadbalancerIP: true
+    podCIDR: true
 EOF
 
+
+
 helm upgrade coredns coredns/coredns \
-    --install \
-    --namespace=kube-system \
-    --set service.clusterIP="29.64.0.10" \
-    --set replicaCount=3
+--install \
+--namespace=kube-system \
+--values - <<EOF
+fullnameOverride: coredns
+
+replicaCount: 3
+
+globalLabels:
+  k8sApp: kube-dns
+
+environments:
+  - name: GOMAXPROCS
+    value: '2'
+
+rollingUpdate:
+  maxUnavailable: 1
+  maxSurge: 35%
+
+terminationGracePeriodSeconds: 30
+podAnnotations: {}
+serviceType: "ClusterIP"
+
+prometheus:
+  service:
+    enabled: false
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "9153"
+  monitor:
+    enabled: false
+    additionalLabels: {}
+    namespace: ""
+
+serviceAccount:
+  create: true
+  name: coredns
+
+rbac:
+  create: true
+  pspEnable: true
+
+priorityClassName: "system-cluster-critical"
+
+
+
+# podDisruptionBudget:
+#   minAvailable: 2
+
+# Default zone is what Kubernetes recommends:
+# https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/#coredns-configmap-options
+servers:
+- zones:
+  - zone: .
+  port: 53
+  plugins:
+  - name: errors
+  # Serves a /health endpoint on :8080, required for livenessProbe
+  - name: health
+    configBlock: |-
+      lameduck 5s
+  # Serves a /ready endpoint on :8181, required for readinessProbe
+  - name: ready
+  # Required to query kubernetes API for data
+  - name: kubernetes
+    parameters: cluster.local in-addr.arpa ip6.arpa
+    configBlock: |-
+      pods verified
+      fallthrough in-addr.arpa ip6.arpa
+      ttl 30
+  # Serves a /metrics endpoint on :9153, required for serviceMonitor
+  - name: prometheus
+    parameters: 0.0.0.0:9153
+  - name: forward
+    parameters: . /etc/resolv.conf
+  - name: cache
+    parameters: 30
+  - name: loop
+  - name: reload
+  - name: loadbalance
+    parameter: round_robin
+
+customLabels: {}
+
+service:
+  clusterIP: "29.64.0.10"
+EOF
+
 
 alias kn='kubectl config set-context --current '
 alias kg='kubectl get'

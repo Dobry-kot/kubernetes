@@ -1,0 +1,125 @@
+{% raw %}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-apiserver
+    tier: control-plane
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - name: kube-apiserver
+    command:
+    - kube-apiserver     
+    args:
+      #####  --etcd-servers= Формируется по маске ','.join(etcdServers) где
+      #### etcdServers = [
+      ####    https://{instanceName}.{clusterName}.{domain}:2379
+      #### ] <-- кол-во эндпоинтов зависит от кол-ва мастеров (список мастеров можно передать в базовом конфиге)
+      - --etcd-servers=https://master-0.cluster-2.dobry-kot.ru:2379,https://master-1.cluster-2.dobry-kot.ru:2379,https://master-2.cluster-2.dobry-kot.ru:2379
+      
+      ##### Сертификаты - параметаризируются только пути - нужно завязываеть на выпускаемых сертификатах.
+      - --tls-cert-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-server.pem
+      - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-server-key.pem
+      - --client-ca-file=/etc/kubernetes/pki/ca/root-ca.pem
+      - --etcd-cafile=/etc/kubernetes/pki/ca/etcd-ca.pem
+      - --etcd-certfile=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-etcd-client.pem
+      - --etcd-keyfile=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-etcd-client-key.pem
+      - --kubelet-client-certificate=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-kubelet-client.pem
+      - --kubelet-client-key=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-kubelet-client-key.pem
+      - --proxy-client-cert-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-front-proxy-client.pem
+      - --proxy-client-key-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-front-proxy-client-key.pem
+      - --requestheader-client-ca-file=/etc/kubernetes/pki/ca/front-proxy-ca.pem
+      - --service-account-key-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-sa.pub
+      - --service-account-signing-key-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-sa.pem
+      #### -> CIDR для сервисной подсети (указывается обязательно - параметаризируется)
+      - --service-cluster-ip-range={{ .Values.global.serviceCIDR }}
+      #### -> эта штука нужна когда надо указать адрес АПИ не локальный а адрес ЛБ от АПИ
+      #### На уровне Терраформа прозрачно не получилось сделать нужно придумать функцию, которая будет резолвить ДНС имя и вытаскивать IP
+      ###--> 
+      # - --secure-port=6443
+      # - --advertise-address=29.64.0.1
+
+      ### Тут указывать список ip адресов с на которые сможет принимать трафик
+      ### 127.0.0.1,127.0.0.6,{LB_API_IP}
+      ###--> Если не можем затащить нужные адреса указываем все 0.0.0.0
+      - --bind-address=0.0.0.0
+
+      ### Отдельный шаблон с политиками - параметаризируемый.
+      - --audit-policy-file=/etc/kubernetes/kube-apiserver/audit-policy.yaml
+  {{- with .Values.pod.kubeApiserver }}
+    {{- with .containers.kubeApiserver }}
+    {{- toYaml .args | nindent 6 }}
+    image: {{ .image }}
+    imagePullPolicy: {{ .imagePullPolicy }}
+    resources:
+      {{- toYaml .resources | nindent 6 }}
+    livenessProbe: 
+      {{- toYaml .livenessProbe | nindent 6 }}
+    readinessProbe:
+      {{- toYaml .readinessProbe | nindent 6 }}
+    startupProbe:
+      {{- toYaml .startupProbe | nindent 6 }}
+    {{- end }}
+  ##### Пока не начали тянуть переменные путей сертификатов блоки волюмов не трогаем
+    volumeMounts:
+    - mountPath: /etc/ssl/certs
+      name: ca-certs
+      readOnly: true
+    - mountPath: /etc/ca-certificates
+      name: etc-ca-certificates
+      readOnly: true
+    - mountPath: /etc/kubernetes/pki/certs
+      name: k8s-certs
+      readOnly: true
+    - mountPath: /etc/kubernetes/pki/ca
+      name: k8s-ca
+      readOnly: true
+    - mountPath: /etc/kubernetes/kube-apiserver
+      name: k8s-kube-apiserver-configs
+      readOnly: true
+    - mountPath: /usr/local/share/ca-certificates
+      name: usr-local-share-ca-certificates
+      readOnly: true
+    - mountPath: /usr/share/ca-certificates
+      name: usr-share-ca-certificates
+      readOnly: true
+  hostNetwork: {{ .hostNetwork }}
+  priorityClassName: {{ .priorityClassName }}
+  securityContext: 
+    {{- toYaml .securityContext | nindent 6 }}
+  {{- end }} 
+  volumes:
+  - hostPath:
+      path: /etc/ssl/certs
+      type: DirectoryOrCreate
+    name: ca-certs
+  - hostPath:
+      path: /etc/ca-certificates
+      type: DirectoryOrCreate
+    name: etc-ca-certificates
+  - hostPath:
+      path: /etc/kubernetes/pki/certs
+      type: DirectoryOrCreate
+    name: k8s-certs
+  - hostPath:
+      path: /etc/kubernetes/pki/ca
+      type: DirectoryOrCreate
+    name: k8s-ca
+  - hostPath:
+      path: /etc/kubernetes/kube-apiserver
+      type: DirectoryOrCreate
+    name: k8s-kube-apiserver-configs
+  - hostPath:
+      path: /usr/local/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-local-share-ca-certificates
+  - hostPath:
+      path: /usr/share/ca-certificates
+      type: DirectoryOrCreate
+    name: usr-share-ca-certificates
+status: {}
+{% endraw %}

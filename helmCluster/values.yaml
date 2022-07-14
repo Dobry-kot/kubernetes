@@ -1,0 +1,224 @@
+global:
+  hostname: master-0
+  clusterName: cluster-1
+  baseDomain: dobry-kot.ru
+  serviceCIDR: 29.64.0.0/16
+
+pod:
+  etcd:
+    containers:
+      etcd:
+        args: 
+          - --initial-cluster-token=etcd
+          - --initial-cluster-state=new
+          - --data-dir=/var/lib/etcd
+          - --strict-reconfig-check
+          - --peer-client-cert-auth=true
+          - --peer-auto-tls=true
+          - --client-cert-auth=true
+        image: k8s.gcr.io/etcd:3.5.3-0
+        livenessProbe:
+          failureThreshold: 8
+          httpGet:
+            host: 127.0.0.1
+            path: /health
+            port: 2381
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 15
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        startupProbe:
+          failureThreshold: 24
+          httpGet:
+            host: 127.0.0.1
+            path: /health
+            port: 2381
+            scheme: HTTP
+        imagePullPolicy: IfNotPresent
+    hostNetwork: true
+    priorityClassName: system-node-critical
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+
+  kubeApiserver:
+    containers:
+      kubeApiserver:
+        args:
+          - --event-ttl=1h0m0s
+          - --kubernetes-service-node-port=0
+          - --master-service-namespace=default
+          - --max-connection-bytes-per-sec=0
+          - --max-requests-inflight=400
+          - --min-request-timeout=1800
+          - --profiling=false
+          - --feature-gates=RotateKubeletServerCertificate=true
+          - --anonymous-auth=false
+          - --audit-log-maxage=30
+          - --audit-log-maxbackup=10
+          - --audit-log-maxsize=1000
+          - --audit-log-mode=batch
+          - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota,AlwaysPullImages,NodeRestriction
+          - --enable-bootstrap-token-auth=true
+          - --runtime-config=api/all=true
+          - --enable-aggregator-routing=true 
+          - --api-audiences=system:konnectivity-server
+          - --requestheader-allowed-names=front-proxy-client
+          - --requestheader-extra-headers-prefix=X-Remote-Extra-
+          - --requestheader-group-headers=X-Remote-Group
+          - --requestheader-username-headers=X-Remote-User
+          - --requestheader-allowed-names=aggregator
+          - --allow-privileged=true
+          - --authorization-mode=Node,RBAC
+          - --service-account-issuer=https://kubernetes.default.svc.cluster.local
+          - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+          - --kubelet-timeout=5s
+          - --v=2
+          - --cloud-provider=external
+        image: k8s.gcr.io/kube-apiserver:v1.23.5 
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 250m
+        livenessProbe:
+          failureThreshold: 8
+          httpGet:
+            host: 127.0.0.1
+            path: /livez
+            port: 6443
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 15
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            host: 127.0.0.1
+            path: /readyz
+            port: 6443
+            scheme: HTTPS
+          periodSeconds: 1
+          timeoutSeconds: 15
+        startupProbe:
+          failureThreshold: 24
+          httpGet:
+            host: 127.0.0.1
+            path: /livez
+            port: 6443
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 15
+    hostNetwork: true
+    priorityClassName: system-node-critical
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+
+  kubeScheduler:
+    containers:
+      kubeScheduler:
+        args:
+          - --leader-elect=true
+          - --secure-port=10259
+        image: k8s.gcr.io/kube-scheduler:v1.23.5
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 8
+          httpGet:
+            host: 127.0.0.1
+            path: /healthz
+            port: 10259
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 15
+        name: kube-scheduler
+        resources:
+          requests:
+            cpu: 100m
+        startupProbe:
+          failureThreshold: 24
+          httpGet:
+            host: 127.0.0.1
+            path: /healthz
+            port: 10259
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 15
+    hostNetwork: true
+    priorityClassName: system-node-critical
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+
+  kubeControllerManager:
+    containers:
+      kubeControllerManager:
+        args:
+          - --v=2
+          - --secure-port=10257
+          - --allocate-node-cidrs=true
+          - --cluster-cidr=29.64.0.0/16
+          - --cluster-name=kubernetes
+          - --concurrent-deployment-syncs=5
+          - --concurrent-endpoint-syncs=5
+          - --concurrent-namespace-syncs=10
+          - --concurrent-replicaset-syncs=20
+          - --concurrent-resource-quota-syncs=5
+          - --horizontal-pod-autoscaler-sync-period=30s
+          - --kube-api-burst=120
+          - --kube-api-qps=100
+          - --leader-elect=true
+          - --leader-elect-lease-duration=15s
+          - --leader-elect-renew-deadline=10s
+          - --leader-elect-retry-period=2s
+          - --namespace-sync-period=2m0s
+          - --node-cidr-mask-size=24
+          - --node-monitor-grace-period=40s
+          - --node-monitor-period=5s
+          - --node-startup-grace-period=1m0s
+          - --pod-eviction-timeout=30s
+          - --profiling=false
+          - --resource-quota-sync-period=5m0s
+          - --terminated-pod-gc-threshold=0
+          - --use-service-account-credentials=true
+          - --controllers=*,bootstrapsigner,tokencleaner,cloud-node-lifecycle,csrapproving,csrcleaner,csrsigning
+          - --authorization-always-allow-paths=/healthz,/metrics
+          - --feature-gates=RotateKubeletServerCertificate=true
+        image: k8s.gcr.io/kube-controller-manager:v1.23.5
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 8
+          httpGet:
+            host: 127.0.0.1
+            path: /healthz
+            port: 10257
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 15
+        name: kube-controller-manager
+        resources:
+          requests:
+            cpu: 200m
+        startupProbe:
+          failureThreshold: 24
+          httpGet:
+            host: 127.0.0.1
+            path: /healthz
+            port: 10257
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 15
+    hostNetwork: true
+    priorityClassName: system-node-critical
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault

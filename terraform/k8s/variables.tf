@@ -12,7 +12,7 @@ variable "base_domain" {
 
 variable "base_os_image" {
   type = string
-  default = "fd8m05qkt5heqme34q9p"
+  default = "fd82c7e0bmhu1phq9dhl"
 }
 
 variable "master_flavor" {

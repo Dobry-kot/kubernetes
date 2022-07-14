@@ -31,7 +31,7 @@ kubelet_config: |
       cacheUnauthorizedTTL: 0s
   cgroupDriver: systemd
   clusterDNS:
-    - "{{ cluster_default_service_network }}"
+    - "{{ internal_dns_ip }}"
   clusterDomain: cluster.local
   cpuManagerReconcilePeriod: 0s
   evictionPressureTransitionPeriod: 0s

@@ -1,0 +1,14 @@
+- name: COPY MANIFESTS.
+  ansible.builtin.template:
+    src: "cluster-controller/pod/{{ static_pod }}"
+    dest: "/tmp/{{ static_pod }}"
+    owner: root
+    group: root
+    mode: '0775'
+  loop:
+    - etcd-template.yaml
+    - kube-apiserver-template.yaml
+    - kube-controller-manager-template.yaml
+    - kube-scheduler-template.yaml
+  loop_control:
+      loop_var: static_pod

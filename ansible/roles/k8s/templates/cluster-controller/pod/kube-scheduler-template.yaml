@@ -1,0 +1,64 @@
+{% raw %}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: kube-scheduler
+    tier: control-plane
+  name: kube-scheduler
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-scheduler
+    args:
+      - --authentication-kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
+      - --authorization-kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
+      - --kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
+      - --tls-cert-file=/etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-server.pem 
+      - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-server-key.pem 
+      - --bind-address=0.0.0.0
+  {{- with .Values.pod.kubeScheduler }}
+    {{- with .containers.kubeScheduler }}
+    {{- toYaml .args | nindent 6 }}
+    image: {{ .image }}
+    imagePullPolicy: {{ .imagePullPolicy }}
+    resources:
+      {{- toYaml .resources | nindent 6 }}
+    livenessProbe: 
+      {{- toYaml .livenessProbe | nindent 6 }}
+    startupProbe:
+      {{- toYaml .startupProbe | nindent 6 }}
+    {{- end }}
+    volumeMounts:
+    - mountPath: /etc/kubernetes/kube-scheduler
+      name: k8s-kube-scheduler-configs
+      readOnly: true
+    - mountPath: /etc/kubernetes/pki/certs
+      name: k8s-certs
+      readOnly: true
+    - mountPath: /etc/kubernetes/pki/ca
+      name: k8s-ca
+      readOnly: true
+  hostNetwork: {{ .hostNetwork }}
+  priorityClassName: {{ .priorityClassName }}
+  securityContext: 
+    {{- toYaml .securityContext | nindent 6 }}
+  {{- end }} 
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes/kube-scheduler
+      type: DirectoryOrCreate
+    name: k8s-kube-scheduler-configs
+  - hostPath:
+      path: /etc/kubernetes/pki/certs
+      type: DirectoryOrCreate
+    name: k8s-certs
+  - hostPath:
+      path: /etc/kubernetes/pki/ca
+      type: DirectoryOrCreate
+    name: k8s-ca
+status: {}
+{% endraw %}

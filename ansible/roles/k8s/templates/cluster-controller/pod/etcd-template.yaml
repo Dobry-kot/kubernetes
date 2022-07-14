@@ -1,0 +1,73 @@
+{% raw %}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    component: etcd
+    tier: control-plane
+  name: etcd
+  namespace: kube-system
+spec:
+  containers:
+  - name: etcd
+    command:
+      - etcd
+    args:
+      ##### --initial-cluster= Формируется по маске ','.join(initialClusterMembers) где
+      #### initialClusterMembers = [
+      ####    {instanceName}.{clusterName}.{domain}=https://{instanceName}.{clusterName}.{domain}:2380
+      #### ] <-- кол-во эндпоинтов зависит от кол-ва мастеров (список мастеров можно передать в базовом конфиге)
+      - --initial-cluster=master-0.cluster-2.dobry-kot.ru=https://master-0.cluster-2.dobry-kot.ru:2380,master-1.cluster-2.dobry-kot.ru=https://master-1.cluster-2.dobry-kot.ru:2380,master-2.cluster-2.dobry-kot.ru=https://master-2.cluster-2.dobry-kot.ru:2380
+      - --name={{ .Values.global.hostname }}.{{ .Values.global.clusterName }}.{{ .Values.global.baseDomain }}
+      - --initial-advertise-peer-urls=https://{{ .Values.global.hostname }}.{{ .Values.global.clusterName }}.{{ .Values.global.baseDomain }}:2380
+      - --advertise-client-urls=https://{{ .Values.global.hostname }}.{{ .Values.global.clusterName }}.{{ .Values.global.baseDomain }}:2379
+      - --trusted-ca-file=/etc/kubernetes/pki/ca/etcd-ca.pem
+      - --cert-file=/etc/kubernetes/pki/certs/etcd/system:etcd-server.pem
+      - --key-file=/etc/kubernetes/pki/certs/etcd/system:etcd-server-key.pem
+      - --peer-trusted-ca-file=/etc/kubernetes/pki/ca/etcd-ca.pem
+      - --peer-cert-file=/etc/kubernetes/pki/certs/etcd/system:etcd-peer.pem
+      - --peer-key-file=/etc/kubernetes/pki/certs/etcd/system:etcd-peer-key.pem
+      - --listen-client-urls=https://0.0.0.0:2379
+      - --listen-peer-urls=https://0.0.0.0:2380
+      - --listen-metrics-urls=http://0.0.0.0:2381
+    {{- with .Values.pod.etcd }}
+      {{- with .containers.etcd }}
+    {{- toYaml .args | nindent 6 }}
+    image: {{ .image }}
+    imagePullPolicy: {{ .imagePullPolicy }}
+    livenessProbe: 
+      {{- toYaml .livenessProbe | nindent 6 }}
+    resources:
+      {{- toYaml .resources | nindent 6 }}
+    startupProbe:
+      {{- toYaml .startupProbe | nindent 6 }}
+    volumeMounts:
+    - mountPath: /var/lib/etcd
+      name: etcd-data
+    - mountPath: /etc/kubernetes/pki/certs/etcd
+      name: etcd-certs
+    - mountPath: /etc/kubernetes/pki/ca
+      name: ca
+    {{- end }}
+  hostNetwork: {{ .hostNetwork }}
+  priorityClassName: {{ .priorityClassName }}
+  securityContext:
+    {{- toYaml .resources | nindent 6 }}
+  {{- end }}
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes/pki/certs/etcd
+      type: DirectoryOrCreate
+    name: etcd-certs
+  - hostPath:
+      path: /etc/kubernetes/pki/ca
+      type: DirectoryOrCreate
+    name: ca
+  - hostPath:
+      path: /var/lib/etcd
+      type: DirectoryOrCreate
+    name: etcd-data
+status: {}
+{% endraw %}
