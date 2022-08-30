@@ -1,0 +1,126 @@
+resource "vault_mount" "root" {
+  path                      = "pki-root"
+  type                      = "pki"
+  description               = "root infrastruction"
+  default_lease_ttl_seconds = 321408000
+  max_lease_ttl_seconds     = 321408000
+}
+
+resource "vault_mount" "root_ca" {
+  for_each                  = local.ssl.root_ca
+  path                      = "${each.value.path}"
+  type                      = vault_mount.root.type
+  description               = "intermediate"
+  default_lease_ttl_seconds = 321408000
+  max_lease_ttl_seconds     = 321408000
+}
+
+resource "vault_mount" "intermediate" {
+  for_each                  = local.ssl.intermediate
+  path                      = "${each.value.path}"
+  type                      = vault_mount.root.type
+  description               = "intermediate"
+  default_lease_ttl_seconds = 321408000
+  max_lease_ttl_seconds     = 321408000
+}
+
+resource "vault_mount" "kvv2-example" {
+  path        = "${local.base_vault_path_kv}"
+  type        = "kv-v2"
+  description = "This is an example KV Version 2 secret engine mount"
+}
+
+resource "vault_pki_secret_backend_intermediate_cert_request" "intermediate" {
+  for_each    = local.ssl.intermediate
+  depends_on  = [vault_mount.intermediate]
+  backend     = "${each.value.path}"
+  type        = "internal"
+  common_name = "${each.value.CN}"
+}
+
+# resource "vault_pki_secret_backend_root_sign_intermediate" "root" {
+#   depends_on           = [vault_pki_secret_backend_intermediate_cert_request.intermediate]
+#   backend              = vault_mount.root.path
+#   csr                  = vault_pki_secret_backend_intermediate_cert_request.intermediate.csr
+#   common_name          = "Intermediate CA"
+#   exclude_cn_from_sans = true
+#   ou                   = "My OU"
+#   organization         = "My organization"
+# }
+
+# resource "vault_pki_secret_backend_root_cert" "root" {
+#   backend              = vault_mount.root.path
+#   type                 = "internal"
+#   common_name          = "Root CA"
+#   ttl                  = 321408000
+#   format               = "pem"
+#   private_key_format   = "der"
+#   key_type             = "rsa"
+#   key_bits             = 4096
+#   exclude_cn_from_sans = true
+#   province             = "CA"
+# }
+
+
+# resource "vault_pki_secret_backend_role" "role" {
+#   depends_on = [
+#     vault_mount.intermediate
+#   ]
+#   for_each         = "${local.ssl.intermediate}"
+#   backend          = "${each.value.path}"
+#   name             = "base-role"
+#   ttl              = 3600
+#   allow_ip_sans    = true
+#   allow_localhost  = true
+#   key_type         = "rsa"
+#   key_bits         = 4096
+#   organization =  ["system:masters"]
+#   allowed_domains = ["system:masters"]
+#   allowed_domains_template= true
+#   allow_bare_domains= true
+#   enforce_hostnames = false
+#   allow_subdomains = true
+#   allow_any_name=true
+#   key_usage        = ["DigitalSignature","KeyAgreement","KeyEncipherment","CertSign","CrlSign","ServerAuth","ClientAuth","Signing"]
+# }
+
+# resource "vault_policy" "example" {
+#   name = "${var.cluster_name}"
+#   policy = local.vault_base_role
+# }
+
+# resource "vault_auth_backend" "approle" {
+#   type = "approle"
+#   path = "clusters/cluster-1/approle"
+# }
+
+# resource "vault_approle_auth_backend_role" "example" {
+#   backend             = vault_auth_backend.approle.path
+#   role_name           = "test-role"
+#   token_ttl           = 300
+#   token_policies      = ["default", vault_policy.example.name]
+# }
+
+# resource "vault_approle_auth_backend_role_secret_id" "id" {
+#   backend   = vault_auth_backend.approle.path
+#   role_name = vault_approle_auth_backend_role.example.role_name
+# }
+
+# resource "vault_approle_auth_backend_login" "login" {
+#   backend   = vault_auth_backend.approle.path
+#   role_id   = vault_approle_auth_backend_role.example.role_id
+#   secret_id = vault_approle_auth_backend_role_secret_id.id.secret_id
+# }
+
+# output "instance_ip_addr" {
+#   value = "${vault_approle_auth_backend_login.login.client_token}"
+# }
+
+# output "policies" {
+#   value = "${vault_approle_auth_backend_role.example.token_policies}"
+# }
+# output "policies2" {
+#   value = "${vault_auth_backend.approle.path}"
+# }
+
+
