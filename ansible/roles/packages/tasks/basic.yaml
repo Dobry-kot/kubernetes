@@ -3,6 +3,6 @@
     name: "{{ basic_packages }}"
     state: latest
 
-- name: INSTALL BASIC PIP PACKAGES.
-  pip:
-    name: "{{ basic_pip_packages }}"
+# - name: INSTALL BASIC PIP PACKAGES.
+#   pip:
+#     name: "{{ basic_pip_packages }}"

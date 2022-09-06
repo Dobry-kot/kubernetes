@@ -28,6 +28,8 @@ variable "master_flavor" {
   }
 }
 
+
+
 variable "yc_availability_master_zones"{
   type = object({
     ru-central1-a = string
@@ -58,4 +60,8 @@ locals {
         base_vault_path_kv = "${local.base_vault_path_kv}",
         }
     )
+}
+
+locals {
+  worker_replicas = range(3)
 }

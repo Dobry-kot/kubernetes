@@ -28,3 +28,4 @@ terraform/templates/cloud-init copy.tftpl
 .terraform
 providers.tf
 terraform/vault-base/terraform.tfstate.backup
+terraform/k8s/terraform.tfstate.backup

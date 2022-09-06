@@ -14,6 +14,10 @@ path "${content.path}/issue/*" {
     capabilities = ["create", "update","patch"]
 }
 
+path "${content.path}/sign/*" {
+    capabilities = ["create", "update","patch"]
+}
+
 path "${content.path}/certs" {
     capabilities = ["list"]
 }

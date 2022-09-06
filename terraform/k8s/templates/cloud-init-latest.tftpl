@@ -9,11 +9,12 @@ users:
       - ${ ssh_key }
 
 runcmd:
-
- - [ /usr/bin/key-keeper, -config, /etc/kubernetes/pki/vault-config ]
+ - /usr/bin/cluster-controller -config /tmp/cluster-controller-cfg.yaml -kuberconfig /etc/kubernetes/kube-apiserver/kubeconfig
+ - /usr/bin/key-keeper -config /etc/kubernetes/pki/vault-config 
 
 write_files:
-  - path: /etc/kubernetes/manifests/etcd.yaml
+
+  - path: /tmp/etcd.yaml
     owner: root:root
     permissions: '0644'
     content: |
@@ -21,8 +22,6 @@ write_files:
       apiVersion: v1
       kind: Pod
       metadata:
-        annotations:
-          kubeadm.kubernetes.io/etcd.advertise-client-urls: https://${ instance_name }.${base_domain}:2379
         creationTimestamp: null
         labels:
           component: etcd
@@ -31,56 +30,38 @@ write_files:
         namespace: kube-system
       spec:
         containers:
-        - command:
+        - name: etcd
+          command:
             - etcd
           args:
+            ##### --initial-cluster= Формируется по маске ','.join(initialClusterMembers) где
+            #### initialClusterMembers = [
+            ####    {instanceName}.{clusterName}.{domain}=https://{instanceName}.{clusterName}.{domain}:2380
+            #### ] <-- кол-во эндпоинтов зависит от кол-ва мастеров (список мастеров можно передать в базовом конфиге)
+            - --initial-cluster=${ etcd_initial_cluster }
+            - --name={{ .Values.global.hostname }}
+            - --initial-advertise-peer-urls=https://{{ .Values.global.hostname }}:2380
+            - --advertise-client-urls=https://{{ .Values.global.hostname }}:2379
             - --trusted-ca-file=/etc/kubernetes/pki/ca/etcd-ca.pem
             - --cert-file=/etc/kubernetes/pki/certs/etcd/system:etcd-server.pem
             - --key-file=/etc/kubernetes/pki/certs/etcd/system:etcd-server-key.pem
             - --peer-trusted-ca-file=/etc/kubernetes/pki/ca/etcd-ca.pem
             - --peer-cert-file=/etc/kubernetes/pki/certs/etcd/system:etcd-peer.pem
             - --peer-key-file=/etc/kubernetes/pki/certs/etcd/system:etcd-peer-key.pem
-            - --name=${ instance_name }.${base_domain}
-            - --client-cert-auth=true
-            - --initial-advertise-peer-urls=https://${ instance_name }.${base_domain}:2380
             - --listen-client-urls=https://0.0.0.0:2379
             - --listen-peer-urls=https://0.0.0.0:2380
             - --listen-metrics-urls=http://0.0.0.0:2381
-            - --advertise-client-urls=https://${ instance_name }.${base_domain}:2379
-            - --initial-cluster-token=etcd
-            - --initial-cluster=${ etcd_initial_cluster }
-            - --initial-cluster-state=new
-            - --data-dir=/var/lib/etcd
-            - --strict-reconfig-check
-            - --peer-client-cert-auth=true
-            - --peer-auto-tls=true
-          image: k8s.gcr.io/etcd:3.5.3-0
-          imagePullPolicy: IfNotPresent
-          livenessProbe:
-            failureThreshold: 8
-            httpGet:
-              host: 127.0.0.1
-              path: /health
-              port: 2381
-              scheme: HTTP
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 15
-          name: etcd
+          {{- with .Values.pod.etcd }}
+            {{- with .containers.etcd }}
+          {{- toYaml .args | nindent 6 }}
+          image: {{ .image }}
+          imagePullPolicy: {{ .imagePullPolicy }}
+          livenessProbe: 
+            {{- toYaml .livenessProbe | nindent 6 }}
           resources:
-            requests:
-              cpu: 100m
-              memory: 100Mi
+            {{- toYaml .resources | nindent 6 }}
           startupProbe:
-            failureThreshold: 24
-            httpGet:
-              host: 127.0.0.1
-              path: /health
-              port: 2381
-              scheme: HTTP
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 15
+            {{- toYaml .startupProbe | nindent 6 }}
           volumeMounts:
           - mountPath: /var/lib/etcd
             name: etcd-data
@@ -88,11 +69,12 @@ write_files:
             name: etcd-certs
           - mountPath: /etc/kubernetes/pki/ca
             name: ca
-        hostNetwork: true
-        priorityClassName: system-node-critical
+          {{- end }}
+        hostNetwork: {{ .hostNetwork }}
+        priorityClassName: {{ .priorityClassName }}
         securityContext:
-          seccompProfile:
-            type: RuntimeDefault
+          {{- toYaml .resources | nindent 6 }}
+        {{- end }}
         volumes:
         - hostPath:
             path: /etc/kubernetes/pki/certs/etcd
@@ -108,7 +90,7 @@ write_files:
           name: etcd-data
       status: {}
 
-  - path: /etc/kubernetes/manifests/kube-apiserver.yaml
+  - path: /tmp/kube-apiserver.yaml
     owner: root:root
     permissions: '0644'
     content: |
@@ -124,11 +106,16 @@ write_files:
         namespace: kube-system
       spec:
         containers:
-        - command:
+        - name: kube-apiserver
+          command:
           - kube-apiserver     
           args:
+            #####  --etcd-servers= Формируется по маске ','.join(etcdServers) где
+            #### etcdServers = [
+            ####    https://{instanceName}.{clusterName}.{domain}:2379
+            #### ] <-- кол-во эндпоинтов зависит от кол-ва мастеров (список мастеров можно передать в базовом конфиге)
             - --etcd-servers=${etcd_advertise_client_urls}
-            - --cloud-provider=external
+            ##### Сертификаты - параметаризируются только пути - нужно завязываеть на выпускаемых сертификатах.
             - --tls-cert-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-server.pem
             - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-server-key.pem
             - --client-ca-file=/etc/kubernetes/pki/ca/root-ca.pem
@@ -142,76 +129,36 @@ write_files:
             - --requestheader-client-ca-file=/etc/kubernetes/pki/ca/front-proxy-ca.pem
             - --service-account-key-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-sa.pub
             - --service-account-signing-key-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-sa.pem
-            - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-            - --kubelet-timeout=5s
-            - --v=2
-            - --service-cluster-ip-range=29.64.0.0/16
+            #### -> CIDR для сервисной подсети (указывается обязательно - параметаризируется)
+            - --service-cluster-ip-range={{ .Values.global.serviceCIDR }}
+            #### -> эта штука нужна когда надо указать адрес АПИ не локальный а адрес ЛБ от АПИ
+            #### На уровне Терраформа прозрачно не получилось сделать нужно придумать функцию, которая будет резолвить ДНС имя и вытаскивать IP
+            ###--> 
             # - --secure-port=6443
             # - --advertise-address=29.64.0.1
-            - --requestheader-allowed-names=front-proxy-client
-            - --requestheader-extra-headers-prefix=X-Remote-Extra-
-            - --requestheader-group-headers=X-Remote-Group
-            - --requestheader-username-headers=X-Remote-User
-            - --requestheader-allowed-names=aggregator
-            - --allow-privileged=true
-            - --authorization-mode=Node,RBAC
+
+            ### Тут указывать список ip адресов с на которые сможет принимать трафик
+            ### 127.0.0.1,127.0.0.6,{LB_API_IP}
+            ###--> Если не можем затащить нужные адреса указываем все 0.0.0.0
             - --bind-address=0.0.0.0
-            - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota,AlwaysPullImages,NodeRestriction
-            - --enable-bootstrap-token-auth=true
-            - --runtime-config=api/all=true
-            - --enable-aggregator-routing=true 
-            - --api-audiences=system:konnectivity-server
-            - --service-account-issuer=https://kubernetes.default.svc.cluster.local
-            - --anonymous-auth=true
-            - --audit-log-maxage=30
-            - --audit-log-maxbackup=10
-            - --audit-log-maxsize=1000
-            - --audit-log-mode=batch
+
+            ### Отдельный шаблон с политиками - параметаризируемый.
             - --audit-policy-file=/etc/kubernetes/kube-apiserver/audit-policy.yaml
-            - --event-ttl=1h0m0s
-            - --kubernetes-service-node-port=0
-            - --master-service-namespace=default
-            - --max-connection-bytes-per-sec=0
-            - --max-requests-inflight=400
-            - --min-request-timeout=1800
-            - --profiling=false
-            - --feature-gates=RotateKubeletServerCertificate=true
-          image: k8s.gcr.io/kube-apiserver:v1.23.5
-                 
-          imagePullPolicy: IfNotPresent
-          livenessProbe:
-            failureThreshold: 8
-            httpGet:
-              host: 127.0.0.1
-              path: /livez
-              port: 6443
-              scheme: HTTPS
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 15
-          name: kube-apiserver
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              host: 127.0.0.1
-              path: /readyz
-              port: 6443
-              scheme: HTTPS
-            periodSeconds: 1
-            timeoutSeconds: 15
+        {{- with .Values.pod.kubeApiserver }}
+          {{- with .containers.kubeApiserver }}
+          {{- toYaml .args | nindent 6 }}
+          image: {{ .image }}
+          imagePullPolicy: {{ .imagePullPolicy }}
           resources:
-            requests:
-              cpu: 250m
+            {{- toYaml .resources | nindent 6 }}
+          livenessProbe: 
+            {{- toYaml .livenessProbe | nindent 6 }}
+          readinessProbe:
+            {{- toYaml .readinessProbe | nindent 6 }}
           startupProbe:
-            failureThreshold: 24
-            httpGet:
-              host: 127.0.0.1
-              path: /livez
-              port: 6443
-              scheme: HTTPS
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 15
+            {{- toYaml .startupProbe | nindent 6 }}
+          {{- end }}
+        ##### Пока не начали тянуть переменные путей сертификатов блоки волюмов не трогаем
           volumeMounts:
           - mountPath: /etc/ssl/certs
             name: ca-certs
@@ -234,11 +181,11 @@ write_files:
           - mountPath: /usr/share/ca-certificates
             name: usr-share-ca-certificates
             readOnly: true
-        hostNetwork: true
-        priorityClassName: system-node-critical
-        securityContext:
-          seccompProfile:
-            type: RuntimeDefault
+        hostNetwork: {{ .hostNetwork }}
+        priorityClassName: {{ .priorityClassName }}
+        securityContext: 
+          {{- toYaml .securityContext | nindent 6 }}
+        {{- end }} 
         volumes:
         - hostPath:
             path: /etc/ssl/certs
@@ -270,7 +217,7 @@ write_files:
           name: usr-share-ca-certificates
       status: {}
 
-  - path: /etc/kubernetes/manifests/kube-controller-manager.yaml
+  - path: /tmp/kube-controller-manager.yaml
     owner: root:root
     permissions: '0644'
     content: |
@@ -286,13 +233,15 @@ write_files:
         namespace: kube-system
       spec:
         containers:
-        - command:
+        - name: kube-controller-manager
+          command:
             - kube-controller-manager
           args:
             - --tls-cert-file=/etc/kubernetes/pki/certs/kube-controller-manager/system:kube-controller-manager-server.pem 
             - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-controller-manager/system:kube-controller-manager-server-key.pem 
             - --client-ca-file=/etc/kubernetes/pki/ca/root-ca.pem 
             - --cluster-signing-cert-file=/etc/kubernetes/pki/ca/root-ca.pem 
+            # Не требуется, если используется внешний модуль подписи сертификатов
             # - --cluster-signing-key-file=/etc/kubernetes/pki/ca/root-ca-key.pem 
             - --requestheader-client-ca-file=/etc/kubernetes/pki/ca/front-proxy-ca.pem 
             - --service-account-private-key-file=/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-sa.pem
@@ -301,62 +250,18 @@ write_files:
             - --authorization-kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig
             - --root-ca-file=/etc/kubernetes/pki/ca/root-ca.pem
             - --bind-address=0.0.0.0
-            - --secure-port=10257
-            - --allocate-node-cidrs=true
-            - --cluster-cidr=29.64.0.0/16
-            - --cluster-name=kubernetes
-            - --concurrent-deployment-syncs=5
-            - --concurrent-endpoint-syncs=5
-            - --concurrent-namespace-syncs=10
-            - --concurrent-replicaset-syncs=20
-            - --concurrent-resource-quota-syncs=5
-            - --horizontal-pod-autoscaler-sync-period=30s
-            - --kube-api-burst=120
-            - --kube-api-qps=100
-            - --leader-elect=true
-            - --leader-elect-lease-duration=15s
-            - --leader-elect-renew-deadline=10s
-            - --leader-elect-retry-period=2s
-            - --namespace-sync-period=2m0s
-            - --node-cidr-mask-size=24
-            - --node-monitor-grace-period=40s
-            - --node-monitor-period=5s
-            - --node-startup-grace-period=1m0s
-            - --pod-eviction-timeout=30s
-            - --profiling=false
-            - --resource-quota-sync-period=5m0s
-            - --terminated-pod-gc-threshold=0
-            - --use-service-account-credentials=true
-            - --controllers=*,bootstrapsigner,tokencleaner,cloud-node-lifecycle,csrapproving,csrcleaner,csrsigning
-            - --authorization-always-allow-paths=/healthz,/metrics
-            - --feature-gates=RotateKubeletServerCertificate=true
-            - --v=2
-          image: k8s.gcr.io/kube-controller-manager:v1.23.5
-          imagePullPolicy: IfNotPresent
-          livenessProbe:
-            failureThreshold: 8
-            httpGet:
-              host: 127.0.0.1
-              path: /healthz
-              port: 10257
-              scheme: HTTPS
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 15
-          name: kube-controller-manager
+        {{- with .Values.pod.kubeControllerManager }}
+          {{- with .containers.kubeControllerManager }}
+          {{- toYaml .args | nindent 6 }}
+          image: {{ .image }}
+          imagePullPolicy: {{ .imagePullPolicy }}
           resources:
-            requests:
-              cpu: 200m
+            {{- toYaml .resources | nindent 6 }}
+          livenessProbe: 
+            {{- toYaml .livenessProbe | nindent 6 }}
           startupProbe:
-            failureThreshold: 24
-            httpGet:
-              host: 127.0.0.1
-              path: /healthz
-              port: 10257
-              scheme: HTTPS
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 15
+            {{- toYaml .startupProbe | nindent 6 }}
+          {{- end }}
           volumeMounts:
           - mountPath: /etc/ssl/certs
             name: ca-certs
@@ -381,11 +286,11 @@ write_files:
           - mountPath: /usr/share/ca-certificates
             name: usr-share-ca-certificates
             readOnly: true
-        hostNetwork: true
-        priorityClassName: system-node-critical
-        securityContext:
-          seccompProfile:
-            type: RuntimeDefault
+        hostNetwork: {{ .hostNetwork }}
+        priorityClassName: {{ .priorityClassName }}
+        securityContext: 
+          {{- toYaml .securityContext | nindent 6 }}
+        {{- end }} 
         volumes:
         - hostPath:
             path: /etc/ssl/certs
@@ -398,7 +303,7 @@ write_files:
         - hostPath:
             path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
             type: DirectoryOrCreate
-          name: flexvolume-dir
+          name: flexvolume-dir 
         - hostPath:
             path: /etc/kubernetes/pki/certs
             type: DirectoryOrCreate
@@ -421,7 +326,261 @@ write_files:
           name: usr-share-ca-certificates
       status: {}
 
-  - path: /etc/kubernetes/manifests/kube-scheduler.yaml
+  - path: /tmp/cluster-controller-cfg.yaml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ---
+      manifestsDir: "/etc/kubernetes/manifests/"
+      manifests:
+        - name: etcd
+          templatePath: /tmp/etcd.yaml
+        - name: kube-apiserver
+          templatePath: /tmp/kube-apiserver.yaml
+        - name: kube-controller-manager
+          templatePath: /tmp/kube-controller-manager.yaml
+        - name: kube-scheduler
+          templatePath: /tmp/kube-scheduler.yaml
+
+      baseValuesFile: /tmp/cluster-controller-base-values.yaml
+
+      extraValues:
+        global:
+          hostname: ${ instance_name }.${base_domain}
+          clusterName: cluster-1
+          baseDomain: ${base_domain}
+
+  - path: /tmp/cluster-controller-base-values.yaml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ---
+      global:
+        hostname: master-test
+        clusterName: cluster-test
+        baseDomain: dk.ru
+        serviceCIDR: 29.64.0.0/16
+      pod:
+        etcd:
+          containers:
+            etcd:
+              args:
+                - --initial-cluster-token=etcd
+                - --initial-cluster-state=new
+                - --data-dir=/var/lib/etcd
+                - --strict-reconfig-check
+                - --peer-client-cert-auth=true
+                - --peer-auto-tls=true
+                - --client-cert-auth=true
+              image: k8s.gcr.io/etcd:3.5.3-0
+              livenessProbe:
+                failureThreshold: 8
+                httpGet:
+                  host: 127.0.0.1
+                  path: /health
+                  port: 2381
+                  scheme: HTTP
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 15
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 100Mi
+              startupProbe:
+                failureThreshold: 24
+                httpGet:
+                  host: 127.0.0.1
+                  path: /health
+                  port: 2381
+                  scheme: HTTP
+              imagePullPolicy: IfNotPresent
+          hostNetwork: true
+          priorityClassName: system-node-critical
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+
+        kubeApiserver:
+          containers:
+            kubeApiserver:
+              args:
+                - --event-ttl=1h0m0s
+                - --kubernetes-service-node-port=0
+                - --master-service-namespace=default
+                - --max-connection-bytes-per-sec=0
+                - --max-requests-inflight=400
+                - --min-request-timeout=1800
+                - --profiling=false
+                - --feature-gates=RotateKubeletServerCertificate=true
+                - --anonymous-auth=true
+                - --audit-log-maxage=30
+                - --audit-log-maxbackup=10
+                - --audit-log-maxsize=1000
+                - --audit-log-mode=batch
+                - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota,AlwaysPullImages,NodeRestriction
+                - --enable-bootstrap-token-auth=true
+                - --runtime-config=api/all=true
+                - --enable-aggregator-routing=true
+                - --api-audiences=system:konnectivity-server
+                - --requestheader-allowed-names=front-proxy-client
+                - --requestheader-extra-headers-prefix=X-Remote-Extra-
+                - --requestheader-group-headers=X-Remote-Group
+                - --requestheader-username-headers=X-Remote-User
+                - --requestheader-allowed-names=aggregator
+                - --allow-privileged=true
+                - --authorization-mode=Node,RBAC
+                - --service-account-issuer=https://kubernetes.default.svc.cluster.local
+                - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+                - --kubelet-timeout=5s
+                - --v=2
+                - --cloud-provider=external
+              image: k8s.gcr.io/kube-apiserver:v1.23.5
+              imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                  cpu: 250m
+              livenessProbe:
+                failureThreshold: 8
+                httpGet:
+                  host: 127.0.0.1
+                  path: /livez
+                  port: 6443
+                  scheme: HTTPS
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 15
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  host: 127.0.0.1
+                  path: /readyz
+                  port: 6443
+                  scheme: HTTPS
+                periodSeconds: 1
+                timeoutSeconds: 15
+              startupProbe:
+                failureThreshold: 24
+                httpGet:
+                  host: 127.0.0.1
+                  path: /livez
+                  port: 6443
+                  scheme: HTTPS
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 15
+          hostNetwork: true
+          priorityClassName: system-node-critical
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+
+        kubeScheduler:
+          containers:
+            kubeScheduler:
+              args:
+                - --leader-elect=true
+                - --secure-port=10259
+              image: k8s.gcr.io/kube-scheduler:v1.23.5
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 8
+                httpGet:
+                  host: 127.0.0.1
+                  path: /healthz
+                  port: 10259
+                  scheme: HTTPS
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 15
+              name: kube-scheduler
+              resources:
+                requests:
+                  cpu: 100m
+              startupProbe:
+                failureThreshold: 24
+                httpGet:
+                  host: 127.0.0.1
+                  path: /healthz
+                  port: 10259
+                  scheme: HTTPS
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 15
+          hostNetwork: true
+          priorityClassName: system-node-critical
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+
+        kubeControllerManager:
+          containers:
+            kubeControllerManager:
+              args:
+                - --v=2
+                - --secure-port=10257
+                - --allocate-node-cidrs=true
+                - --cluster-cidr=29.64.0.0/16
+                - --cluster-name=kubernetes
+                - --concurrent-deployment-syncs=5
+                - --concurrent-endpoint-syncs=5
+                - --concurrent-namespace-syncs=10
+                - --concurrent-replicaset-syncs=20
+                - --concurrent-resource-quota-syncs=5
+                - --horizontal-pod-autoscaler-sync-period=30s
+                - --kube-api-burst=120
+                - --kube-api-qps=100
+                - --leader-elect=true
+                - --leader-elect-lease-duration=15s
+                - --leader-elect-renew-deadline=10s
+                - --leader-elect-retry-period=2s
+                - --namespace-sync-period=2m0s
+                - --node-cidr-mask-size=24
+                - --node-monitor-grace-period=40s
+                - --node-monitor-period=5s
+                - --node-startup-grace-period=1m0s
+                - --pod-eviction-timeout=30s
+                - --profiling=false
+                - --resource-quota-sync-period=5m0s
+                - --terminated-pod-gc-threshold=0
+                - --use-service-account-credentials=true
+                - --controllers=*,bootstrapsigner,tokencleaner,cloud-node-lifecycle,csrapproving,csrcleaner,csrsigning
+                - --authorization-always-allow-paths=/healthz,/metrics
+                - --feature-gates=RotateKubeletServerCertificate=true
+              image: k8s.gcr.io/kube-controller-manager:v1.23.5
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 8
+                httpGet:
+                  host: 127.0.0.1
+                  path: /healthz
+                  port: 10257
+                  scheme: HTTPS
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 15
+              name: kube-controller-manager
+              resources:
+                requests:
+                  cpu: 200m
+              startupProbe:
+                failureThreshold: 24
+                httpGet:
+                  host: 127.0.0.1
+                  path: /healthz
+                  port: 10257
+                  scheme: HTTPS
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 15
+          hostNetwork: true
+          priorityClassName: system-node-critical
+          securityContext:
+            seccompProfile:
+              type: RuntimeDefault
+
+
+  - path: /tmp/kube-scheduler.yaml
     owner: root:root
     permissions: '0644'
     content: |
@@ -437,7 +596,8 @@ write_files:
         namespace: kube-system
       spec:
         containers:
-        - command:
+        - name: kube-scheduler
+          command:
           - kube-scheduler
           args:
             - --authentication-kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
@@ -446,34 +606,18 @@ write_files:
             - --tls-cert-file=/etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-server.pem 
             - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-server-key.pem 
             - --bind-address=0.0.0.0
-            - --leader-elect=true
-            - --secure-port=10259
-          image: k8s.gcr.io/kube-scheduler:v1.23.5
-          imagePullPolicy: IfNotPresent
-          livenessProbe:
-            failureThreshold: 8
-            httpGet:
-              host: 127.0.0.1
-              path: /healthz
-              port: 10259
-              scheme: HTTPS
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 15
-          name: kube-scheduler
+        {{- with .Values.pod.kubeScheduler }}
+          {{- with .containers.kubeScheduler }}
+          {{- toYaml .args | nindent 6 }}
+          image: {{ .image }}
+          imagePullPolicy: {{ .imagePullPolicy }}
           resources:
-            requests:
-              cpu: 100m
+            {{- toYaml .resources | nindent 6 }}
+          livenessProbe: 
+            {{- toYaml .livenessProbe | nindent 6 }}
           startupProbe:
-            failureThreshold: 24
-            httpGet:
-              host: 127.0.0.1
-              path: /healthz
-              port: 10259
-              scheme: HTTPS
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 15
+            {{- toYaml .startupProbe | nindent 6 }}
+          {{- end }}
           volumeMounts:
           - mountPath: /etc/kubernetes/kube-scheduler
             name: k8s-kube-scheduler-configs
@@ -484,11 +628,11 @@ write_files:
           - mountPath: /etc/kubernetes/pki/ca
             name: k8s-ca
             readOnly: true
-        hostNetwork: true
-        priorityClassName: system-node-critical
-        securityContext:
-          seccompProfile:
-            type: RuntimeDefault
+        hostNetwork: {{ .hostNetwork }}
+        priorityClassName: {{ .priorityClassName }}
+        securityContext: 
+          {{- toYaml .securityContext | nindent 6 }}
+        {{- end }} 
         volumes:
         - hostPath:
             path: /etc/kubernetes/kube-scheduler
@@ -681,7 +825,7 @@ write_files:
       memorySwap: {}
       nodeStatusReportFrequency: 0s
       nodeStatusUpdateFrequency: 0s
-      resolvConf: /run/systemd/resolve/resolv.conf
+      resolvConf: /etc/resolv.conf
       rotateCertificates: true
       runtimeRequestTimeout: 0s
       serverTLSBootstrap: true
@@ -768,17 +912,17 @@ write_files:
             generate: false
         csr:
         # KUBE-APISERVER -->
-          - common_name: "system:kube-apiserver-front-proxy-client"
+          - common_name: "custom:kube-apiserver-front-proxy-client"
             role: "front-proxy-client" # system_masters_client
             host_path: "/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-front-proxy-client"
             cert_path: "clusters/${cluster_name}/pki/front-proxy"
 
-          - common_name: "system:kube-apiserver-etcd-client"
+          - common_name: "custom:kube-apiserver-etcd-client"
             role: "etcd-client"
             host_path: "/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-etcd-client"
             cert_path: "clusters/${cluster_name}/pki/etcd"
 
-          - common_name: "system:kube-apiserver-server"
+          - common_name: "custom:kube-apiserver-server"
             role: "kube-apiserver"
             host_path: "/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-server"
             cert_path: "clusters/${cluster_name}/pki/kubernetes"
@@ -796,7 +940,20 @@ write_files:
               - "127.0.1.6"
               - "29.64.0.1"
 
-          - common_name: "system:kube-apiserver-kubelet-client"
+          - common_name: "custom:kubelet-server"
+            role: "kubelet-server"
+            host_path: "/etc/kubernetes/pki/certs/kube-apiserver/system:kubelet-server"
+            cert_path: "clusters/${cluster_name}/pki/kubernetes"
+            hosts:
+              - "localhost"
+              - ${ instance_name }.${base_domain}
+            ips:
+              - "127.0.0.1"
+              - "127.0.1.1"
+              - "127.0.1.6"
+              - "29.64.0.1"
+
+          - common_name: "custom:kube-apiserver-kubelet-client"
             role: "kube-apiserver-kubelet-client"
             host_path: "/etc/kubernetes/pki/certs/kube-apiserver/system:kube-apiserver-kubelet-client"
             cert_path: "clusters/${cluster_name}/pki/kubernetes"
@@ -807,7 +964,7 @@ write_files:
             host_path: "/etc/kubernetes/pki/certs/kube-controller-manager/system:kube-controller-manager-client"
             cert_path: "clusters/${cluster_name}/pki/kubernetes"
 
-          - common_name: "system:kube-controller-manager-server"
+          - common_name: "custom:kube-controller-manager-server"
             role: "kube-controller-manager-server"
             host_path: "/etc/kubernetes/pki/certs/kube-controller-manager/system:kube-controller-manager-server"
             cert_path: "clusters/${cluster_name}/pki/kubernetes"
@@ -828,7 +985,7 @@ write_files:
             host_path: "/etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-client"
             cert_path: "clusters/${cluster_name}/pki/kubernetes"
 
-          - common_name: "system:kube-scheduler-server"
+          - common_name: "custom:kube-scheduler-server"
             role: "kube-scheduler-server"
             host_path: "/etc/kubernetes/pki/certs/kube-scheduler/system:kube-scheduler-server"
             cert_path: "clusters/${cluster_name}/pki/kubernetes"
@@ -845,18 +1002,19 @@ write_files:
               - "29.64.0.1"
 
             #   # KUBELET -->
+
           - common_name: "system:node:${ instance_name }.${base_domain}"
             role: "kubelet-client"
             host_path: "/etc/kubernetes/pki/certs/kubelet/current:kubelet"
             cert_path: "clusters/${cluster_name}/pki/kubernetes"
 
           # ETCD -->
-          - common_name: "system:etcd-healthcheck-client"
+          - common_name: "custom:etcd-healthcheck-client"
             role: "etcd-client"
             host_path: "/etc/kubernetes/pki/certs/etcd/system:etcd-healthcheck-client"
             cert_path: "clusters/${cluster_name}/pki/etcd"
 
-          - common_name: "system:etcd-peer"
+          - common_name: "custom:etcd-peer"
             role: "etcd-peer"
             host_path: "/etc/kubernetes/pki/certs/etcd/system:etcd-peer"
             cert_path: "clusters/${cluster_name}/pki/etcd"
@@ -868,7 +1026,7 @@ write_files:
               - "127.0.1.1"
               - "127.0.1.6"
 
-          - common_name: "system:etcd-server"
+          - common_name: "custom:etcd-server"
             role: "etcd-server"
             host_path: "/etc/kubernetes/pki/certs/etcd/system:etcd-server"
             cert_path: "clusters/${cluster_name}/pki/etcd"

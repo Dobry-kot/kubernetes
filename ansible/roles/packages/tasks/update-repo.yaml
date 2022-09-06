@@ -17,3 +17,12 @@
         state: present
         filename: kubernetes
   when: ansible_distribution | lower == 'ubuntu'
+
+- name: BLOCK FOR ALMA
+  block:
+    - name: INSTALL EPEL.
+      ansible.builtin.package:
+        name: epel-release
+        state: latest
+
+  when: ansible_distribution | lower == 'almalinux'

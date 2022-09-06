@@ -1,29 +1,19 @@
-variable "YC_FOLDER_ID" {
-  type = string
-  default = env("YC_FOLDER_ID")
-}
+# export YC_TOKEN=$(yc iam create-token)
 
-variable "YC_ZONE" {
-  type = string
-  default = "ru-central1-a"
+locals {
+  base_date = formatdate("MMM-DD-YYYY", timestamp())
 }
-
-variable "YC_SUBNET_ID" {
-  type = string
-  default = "e9bln6ttrrilu88m6h7d"
-}
-
 
 source "yandex" "packer" {
-  folder_id           = "${var.YC_FOLDER_ID}"
+  folder_id           = "b1g7220ns3r5dts1lha3"
   source_image_family = "almalinux-8"
-  ssh_username        = "almalinux"
+  ssh_username        = "cloud-user"
   use_ipv4_nat        = "true"
   image_family        = "k8s"
-  image_name          = "almalinux-8"
-  subnet_id           = "${var.YC_SUBNET_ID}"
+  image_name          = "almalinux-06-01-00"
+  subnet_id           = "e9bln6ttrrilu88m6h7d"
   disk_type           = "network-hdd"
-  zone                = "${var.YC_ZONE}"
+  zone                = "ru-central1-a"
 }
 
 build {

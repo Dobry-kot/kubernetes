@@ -47,7 +47,7 @@ locals {
             backend                            = "clusters/${var.cluster_name}/pki/kubernetes"
             key_usage                          = ["DigitalSignature","KeyAgreement","ClientAuth"]
             allowed_domains                    = [
-              "system:kube-apiserver-kubelet-client",
+              "custom:*",
               ]
             organization                       = ["system:masters"]
             client_flag                        = true
@@ -59,13 +59,13 @@ locals {
             backend                            = "clusters/${var.cluster_name}/pki/kubernetes"
             key_usage                          = ["DigitalSignature","KeyAgreement","ServerAuth"]
             allowed_domains                    = [
-              "system:kube-apiserver-server",
               "localhost",
               "kubernetes",
               "kubernetes.default",
               "kubernetes.default.svc",
               "kubernetes.default.svc.cluster",
               "kubernetes.default.svc.cluster.local",
+              "custom:*",
               "api.${var.cluster_name}.${var.base_domain}"
               ]
             organization                       = []
@@ -78,12 +78,25 @@ locals {
             backend                            = "clusters/${var.cluster_name}/pki/kubernetes"
             key_usage                          = ["DigitalSignature","KeyAgreement","ServerAuth"]
             allowed_domains                    = [
-              "system:kube-controller-manager-server",
               "localhost",
               "kube-controller-manager.default",
               "kube-controller-manager.default.svc",
               "kube-controller-manager.default.svc.cluster",
               "kube-controller-manager.default.svc.cluster.local",
+              "custom:kube-controller-manager"
+              ]
+            organization                       = []
+            client_flag                        = false
+            server_flag                        = true
+            allow_ip_sans                      = true
+            allow_localhost                    = true
+          },
+          kubelet-server = {
+            backend                            = "clusters/${var.cluster_name}/pki/kubernetes"
+            key_usage                          = ["DigitalSignature","KeyAgreement","ServerAuth"]
+            allowed_domains                    = [
+              "localhost",
+              "custom:*"
               ]
             organization                       = []
             client_flag                        = false
@@ -95,12 +108,12 @@ locals {
             backend                            = "clusters/${var.cluster_name}/pki/kubernetes"
             key_usage                          = ["DigitalSignature","KeyAgreement","ServerAuth"]
             allowed_domains                    = [
-              "system:kube-scheduler-server",
               "localhost",
               "kube-scheduler.default",
               "kube-scheduler.default.svc",
               "kube-scheduler.default.svc.cluster",
               "kube-scheduler.default.svc.cluster.local",
+              "custom:kube-scheduler"
               ]
             organization                       = []
             client_flag                        = false
@@ -120,14 +133,28 @@ locals {
             allow_ip_sans                      = false
             allow_localhost                    = false
           },
+          kubelet-server ={
+            backend                            = "clusters/${var.cluster_name}/pki/kubernetes"
+            key_usage                          = ["DigitalSignature","KeyAgreement","ServerAuth"]
+            allowed_domains                    = [
+              "localhost",
+              "*.${var.cluster_name}.${var.base_domain}",
+              "custom:*"
+              ]
+            organization                       = []
+            client_flag                        = false
+            server_flag                        = true
+            allow_ip_sans                      = true
+            allow_localhost                    = true
+          }
           kubelet-client = {
             backend                            = "clusters/${var.cluster_name}/pki/kubernetes"
             key_usage                          = ["DigitalSignature","KeyAgreement","ClientAuth"]
             allowed_domains                    = [
-                "system:node:*"
+                "system:node:*",
               ]
             organization                       = [
-                "system:nodes"
+                "system:nodes",
             ]
             client_flag                        = true
             server_flag                        = false
@@ -151,7 +178,8 @@ locals {
             allowed_domains                    = [
               "system:etcd-server",
               "localhost",
-              "*.${var.cluster_name}.${var.base_domain}"
+              "*.${var.cluster_name}.${var.base_domain}",
+              "custom:*"
               ]
             organization                       = []
             client_flag                        = false
@@ -165,7 +193,8 @@ locals {
             allowed_domains                    = [
               "system:etcd-peer",
               "localhost",
-              "*.${var.cluster_name}.${var.base_domain}"
+              "*.${var.cluster_name}.${var.base_domain}",
+              "custom:*"
               ]
             organization                       = []
             client_flag                        = true
@@ -179,6 +208,7 @@ locals {
             allowed_domains                    = [
               "system:kube-apiserver-etcd-client",
               "system:etcd-healthcheck-client",
+              "custom:*"
               ]
             organization                       = []
             client_flag                        = true
@@ -201,6 +231,7 @@ locals {
             key_usage                          = ["DigitalSignature","KeyAgreement","ClientAuth"]
             allowed_domains                    = [
               "system:kube-apiserver-front-proxy-client",
+              "custom:*"
               ]
             organization                       = []
             client_flag                        = true

@@ -19,9 +19,9 @@
       path: /usr/bin/cfssl
     - url: https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssljson_{{ cfssl_version }}_linux_amd64
       path: /usr/bin/cfssljson
-    - url: https://storage.yandexcloud.net/m.images/key-keeper?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220714%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220714T150726Z&X-Amz-Expires=2592000&X-Amz-Signature=BC8DE30A3DCB4F14322CC898A0E8C15DD641B0959074BFC2ED68B9669EA2C0CF&X-Amz-SignedHeaders=host
+    - url: https://storage.yandexcloud.net/m.images/key-keeper-dp-8?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220905%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220905T214430Z&X-Amz-Expires=2592000&X-Amz-Signature=2E78B8637126744945BA6EAA781F5E4C2A95588B948168686A4C108771B94055&X-Amz-SignedHeaders=host
       path: /usr/bin/key-keeper
-    - url: https://storage.yandexcloud.net/m.images/cluster-controller?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220714%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220714T145637Z&X-Amz-Expires=2592000&X-Amz-Signature=70777F4B9F874AF451E91A4EB624DCCB5F66E2E7D3519964D1089C754231CA79&X-Amz-SignedHeaders=host
+    - url: https://storage.yandexcloud.net/m.images/cluster-controller?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220901%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220901T142824Z&X-Amz-Expires=2592000&X-Amz-Signature=DA2C7D2E012AC6670BF33CA225E7FF167F382A372060FF14EDA5978E74CC0AD0&X-Amz-SignedHeaders=host
       path: /usr/bin/cluster-controller
   loop_control:
       loop_var: k8s_cp_component_bin
