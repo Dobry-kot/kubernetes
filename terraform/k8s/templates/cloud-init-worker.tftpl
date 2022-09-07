@@ -44,6 +44,7 @@ write_files:
     permissions: '0644'
     content: |
       apiVersion: kubelet.config.k8s.io/v1beta1
+      kind: KubeletConfiguration
       authentication:
         anonymous:
           enabled: false
@@ -62,7 +63,7 @@ write_files:
       cgroupDriver: systemd
       clusterDNS:
         - "29.64.0.10"
-      clusterDomain: cluster.local
+      clusterDomain: 
       cpuManagerReconcilePeriod: 0s
       evictionPressureTransitionPeriod: 0s
       fileCheckFrequency: 0s
@@ -70,7 +71,6 @@ write_files:
       healthzPort: 10248
       httpCheckFrequency: 0s
       imageMinimumGCAge: 0s
-      kind: KubeletConfiguration
       logging:
         flushFrequency: 0
         options:
@@ -91,46 +91,83 @@ write_files:
       syncFrequency: 0s
       volumeStatsAggPeriod: 0s
       
-  - path: /etc/kubernetes/kubelet/service-args-custom.env
+  - path: /etc/kubernetes/kubelet/service/args-custom-hostname.env
     owner: root:root
     permissions: '0644'
     content: |
-      ### file managed by puppet
-      # kubernetes kubelet (minion) config
-
-      # The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
-      # KUBELET_ADDRESS="--address=0.0.0.0"
-
-      # The port for the info server to serve on
-      # KUBELET_PORT="--port=10250"
-
-      # You may leave this blank to use the actual hostname
-      KUBELET_HOSTNAME="--hostname-override=${ instance_name }.${base_domain}"
-
-      # location of the api-server
-
-      # Add your own!
-      KUBELET_ARGS="
-          --config=/etc/kubernetes/kubelet/config.yaml
-          --kubeconfig=/etc/kubernetes/kubelet/kubeconfig
-          --container-runtime=remote
-          --container-runtime-endpoint=/run/containerd/containerd.sock
-          --pod-infra-container-image=k8s.gcr.io/pause:3.6
-          --root-dir=/var/lib/kubelet
+      KUBELET_HOSTNAME="
+          --hostname-override=${ instance_name }.${base_domain}
+          --node-labels=node.kubernetes.io/${instance_type}
+      "
+  - path: /etc/kubernetes/kubelet/service/args-custom-cni.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_CNI_ARGS="
           --cni-bin-dir=/opt/cni/bin
           --cni-conf-dir=/etc/cni/net.d
           --network-plugin=cni
+      "
+  - path: /etc/kubernetes/kubelet/service/args-custom-runtime.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_RUNTIME_ARGS="
+          --container-runtime=remote
+          --container-runtime-endpoint=/run/containerd/containerd.sock
+          --pod-infra-container-image=k8s.gcr.io/pause:3.6
+      "
+  - path: /etc/kubernetes/kubelet/service/args-custom-auth.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_AUTH_ARGS="
+          --anonymous-auth="false"
+      "
+  - path: /etc/kubernetes/kubelet/service/args-custom-configs.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_CONFIGS_ARGS="
+          --config=/etc/kubernetes/kubelet/config.yaml
+          --root-dir=/var/lib/kubelet
           --register-node=true
           --image-pull-progress-deadline=2m
           --v=2
-          --bootstrap-kubeconfig=/etc/kubernetes/kubelet/bootstrap-kubeconfig
-          --cert-dir=/etc/kubernetes/pki/certs/kubelet
-          --rotate-certificates=true
-          --rotate-server-certificates=true
-          --anonymous-auth="false"
-          - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-apiserver/kubelet-server-key.pem
-          - --tls-cert-file=/etc/kubernetes/pki/certs/kube-apiserver/kubelet-server.pem
       "
+  - path: /etc/kubernetes/kubelet/service/args-basic.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_BASIC_ARGS="
+          --register-node=true
+          --image-pull-progress-deadline=2m
+          --v=2
+      "
+  - path: /etc/kubernetes/kubelet/service/args-custom-kubeconfig.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_KUBECONFIG_ARGS="
+          --kubeconfig=/etc/kubernetes/kubelet/kubeconfig
+          --bootstrap-kubeconfig=/etc/kubernetes/kubelet/bootstrap-kubeconfig
+      "
+
+  - path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [Service]
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-hostname.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-cni.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-runtime.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-auth.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-configs.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-kubeconfig.env
+
+      ExecStart=
+      ExecStart=/usr/bin/kubelet $KUBELET_HOSTNAME $KUBELET_CNI_ARGS $KUBELET_RUNTIME_ARGS $KUBELET_AUTH_ARGS $KUBELET_CONFIGS_ARGS $KUBELET_BASIC_ARGS $KUBELET_KUBECONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS $KUBELET_ARGS
+
 
   - path: /etc/kubernetes/pki/vault-config
     owner: root:root
@@ -235,6 +272,8 @@ write_files:
           spec:
             subject:
               commonName: "system:node:${ instance_name }.${base_domain}"
+              organizations:
+                - system:nodes
             privateKey:
               algorithm: RSA
               encoding: PKCS1

@@ -11,13 +11,18 @@ EnvironmentFile=-/var/lib/kubelet/kubeadm-flags.env
 # the .NodeRegistration.KubeletExtraArgs object in the configuration files instead. KUBELET_EXTRA_ARGS should be sourced from this file.
 EnvironmentFile=-/etc/default/kubelet
 ExecStart=
-ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
+ExecStart=/usr/bin/kubelet $KUBELET_HOSTNAME $KUBELET_CNI_ARGS $KUBELET_RUNTIME_ARGS $KUBELET_AUTH_ARGS $KUBELET_CONFIGS_ARGS $KUBELET_BASIC_ARGS $KUBELET_KUBECONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS $KUBELET_ARGS
 
 {% else %}
-# Note: This dropin only works with terra-kube and kubelet v1.11+
 [Service]
-EnvironmentFile=-/etc/kubernetes/kubelet/service-args-custom.env
+EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-hostname.env
+EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-cni.env
+EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-runtime.env
+EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-auth.env
+EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-configs.env
+EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-kubeconfig.env
+
 ExecStart=
-ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS $KUBELET_ARGS $KUBELET_HOSTNAME
+ExecStart=/usr/bin/kubelet $KUBELET_HOSTNAME $KUBELET_CNI_ARGS $KUBELET_RUNTIME_ARGS $KUBELET_AUTH_ARGS $KUBELET_CONFIGS_ARGS $KUBELET_BASIC_ARGS $KUBELET_KUBECONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS $KUBELET_ARGS
 
 {% endif %}

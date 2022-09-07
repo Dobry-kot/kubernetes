@@ -90,9 +90,11 @@ resource "yandex_compute_instance" "master" {
         list_masters    = "${local.list_masters}"
         etcd_advertise_client_urls = "${local.etcd_advertise_client_urls}"
         instance_name   = "master-${index(keys(var.yc_availability_master_zones), each.key)}.${var.cluster_name}"
+        instance_type   = "master"
         etcd_initial_cluster = "${local.etcd_initial_cluster}"
         kubeApiserverSaPub = "${tls_private_key.test.public_key_pem}"
         kubeApiserverSaPem = "${tls_private_key.test.private_key_pem}"
+        
         })
   }
 }
@@ -107,9 +109,9 @@ resource "yandex_compute_instance" "workers" {
   zone        = "ru-central1-a"
 
   resources {
-    cores         = "${var.master_flavor.core}"
-    memory        = "${var.master_flavor.memory}"
-    core_fraction = "${var.master_flavor.core_fraction}"
+    cores         = "${var.worker_flavor.core}"
+    memory        = "${var.worker_flavor.memory}"
+    core_fraction = "${var.worker_flavor.core_fraction}"
   }
 
   boot_disk {
@@ -131,6 +133,7 @@ resource "yandex_compute_instance" "workers" {
         base_domain     = "${var.base_domain}",
         ssh_key         = "${file("~/.ssh/id_rsa.pub")}"
         instance_name   = "worker-${count.index}.${var.cluster_name}"
+        instance_type   = "worker"
         })
   }
 }

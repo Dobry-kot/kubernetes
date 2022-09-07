@@ -91,19 +91,6 @@ locals {
             allow_ip_sans                      = true
             allow_localhost                    = true
           },
-          kubelet-server = {
-            backend                            = "clusters/${var.cluster_name}/pki/kubernetes"
-            key_usage                          = ["DigitalSignature","KeyAgreement","ServerAuth"]
-            allowed_domains                    = [
-              "localhost",
-              "custom:*"
-              ]
-            organization                       = []
-            client_flag                        = false
-            server_flag                        = true
-            allow_ip_sans                      = true
-            allow_localhost                    = true
-          },
           kube-scheduler-server = {
             backend                            = "clusters/${var.cluster_name}/pki/kubernetes"
             key_usage                          = ["DigitalSignature","KeyAgreement","ServerAuth"]
@@ -141,7 +128,9 @@ locals {
               "*.${var.cluster_name}.${var.base_domain}",
               "system:node:*"
               ]
-            organization                       = []
+            organization                       = [
+                "system:nodes",
+            ]
             client_flag                        = false
             server_flag                        = true
             allow_ip_sans                      = true

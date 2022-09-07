@@ -28,6 +28,19 @@ variable "master_flavor" {
   }
 }
 
+variable "worker_flavor" {
+  type = object({
+    core          = string
+    memory        = string
+    core_fraction = string
+  })
+  default = {
+    core          = 2
+    memory        = 4
+    core_fraction = 20
+  }
+}
+
 
 
 variable "yc_availability_master_zones"{

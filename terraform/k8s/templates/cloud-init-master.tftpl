@@ -120,8 +120,8 @@ write_files:
             - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-server-key.pem
             - --client-ca-file=/etc/kubernetes/pki/ca/kubernetes-ca.pem
             - --etcd-cafile=/etc/kubernetes/pki/ca/etcd-ca.pem
-            - --etcd-certfile=/etc/kubernetes/pki/certs/etcd/kube-apiserver-etcd-client.pem
-            - --etcd-keyfile=/etc/kubernetes/pki/certs/etcd/kube-apiserver-etcd-client-key.pem
+            - --etcd-certfile=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-etcd-client.pem
+            - --etcd-keyfile=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-etcd-client-key.pem
             - --kubelet-client-certificate=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-kubelet-client.pem
             - --kubelet-client-key=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-kubelet-client-key.pem
             - --proxy-client-cert-file=/etc/kubernetes/pki/certs/kube-apiserver/front-proxy-client.pem
@@ -579,7 +579,6 @@ write_files:
             seccompProfile:
               type: RuntimeDefault
 
-
   - path: /tmp/kube-scheduler.yaml
     owner: root:root
     permissions: '0644'
@@ -648,6 +647,7 @@ write_files:
           name: k8s-ca
       status: {}
 
+
   - path: /etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-sa.pub
     owner: root:root
     permissions: '0644'
@@ -660,6 +660,7 @@ write_files:
     encoding: b64
     content: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBei8vdGpyeGh3K0xzOFlsYmswTUgzcW96OHRuRlhMcFYxR2t4bzdnZ1hqZXY5SHV0CjNGTzdxWkM1d3A4WXpsL2I2WnhUZjRlSmdJd2crVm16SHB4ZDlaSGxBWlZDOE92alRjU2NRNUpRZlh0WTRVZ24KUm01K0FhMTUxU0x0RnN5bTNtWnR6TG11OHlMZGdraDlld1oybTEwYkRQb0VkUnZjazE5cWM2K0pKTzhVNmxmawpnOGVja2svbC9yYWYyM3pZRFdjcEhiSE9ia251QTNxWUdvZFhkaitBY0gwNGI3ZG42VVhpb0Iyd3liakRIZDBICjQzZGdOUWh3MWg4TlNETUtPMEJQL1pvZk1vTm4zdXhoNWp5L0taTFUvTTd5NHExYlptTVZ6c0tMaW9sMlhmSksKSWZiREZrcXFEeEJ4OVVKeW5zVEJnL1R6MzFmVDVuNHRpYU9IaXdJREFRQUJBb0lCQVFDTlE4WTFzTis5U0h1ZwpONmZJUmpnc0UvQ2dPU0wvclZYcG8yQWhUMFk4ZHhtN3M5d0t6WnVndURoUlkvaFhBV2U4SzMzU0dWMWJ2dEFPClNjdUxPS3Zmd3F5RC9MbXdJcVVJQmtZUzVtWmdNc3ZVaFVxWFhTZWJRQlNFbXVubkdDc2sxUEF4b05LZk1zaTYKV1QxUHRyNExHcHJxbjBzenRpNkNzTVQ5dVBRdDdqRVR2cWM4MnYyY0JIZEQyY0NvcDl5WlNLdlBtcW5kbXdUeQpCV3BLN1ZkNlNDQ2lOOXlOT1ZBZVJPcmN2TWdIWCtkSlBRM2Fad1BrUHRLZHFZUVNMMDZZc1VER0IxQ1RCTnAwCkE5czBRUnNzMVp1cmR1TEh2RHQwclB4RTJlL2huVFpxYXhjWTF3bUg3NFdFSVgwUStnUDMvcXVib29EeUtpSXMKWWRIYndDRGhBb0dCQU9qSTRkbklNcThENnVuNTNMTGZzQzArczVvZmtTOFZVV0NucjIxNTJGbWs0Y0h0Y2pMcgo4RXJGM0FzQTlmdys4YlZQbFFRUW1CTXdqczFsZVZ4UklkdENqOVRSdGFjdGh3VDRFOUwybllwMlVHNzU5dTltCkQrQjRST09jNGlqQnRGUHBOVzlIOEZGWHhkR3NTdUNpanZEWTZ5KzhGK2JxZXNndk5Oc0pnQW1KQW9HQkFPUysKUmFHcXQ0eW1IUUNxRXpKR2lCMEpsdkc0dlFoQTc1eDB3TXpzQjlESkh1dTlaU1MwYWRQNFRqMXY0VExoQnhabgpTdTR3akVnaUNLbUZ1RlBsVWs4bE91Q1FOYnY2Tzl6MGx4eE93djY5Wm9uQm9VSDluYWhLK3JvTzN5QzVwR3RJCnFUTHhPZHhaUmxGall4czMveGFCeTFTN2ZFNklETkRmL3VWeFdJZHpBb0dCQUt0Y1ZZWHdMZjlRTHZvV2lUVFUKSGVqd28xM3RwdjYxL3JYY092T29JbSs3Uk1WeGVnT3FVN1YzZWNoUDZNVEx3VHJyWHBNamRBK01TMU5BUTlxRgpqeHJOSVB4VmRCZWhHQ2U4Unp1aGQ4K1owUlFneG5yczh2c1hEZjlRV2R3TzNDUjVKSERLMEVuUkJ6cVdUbmlXCnNncnlaQTg3czR5MVI3VmRxdGNqWXpHaEFvR0FOYWpsRU0zSmpUY1NxcXM3SVpvbUtCbXR6VHEzTFk1K0owZkUKU3M0Nzd5Q2ZIbElwdmZpTXN1c1cvNWFWVDZnMlQyMGZ5TXlldS9Vdjd3U3RmeERXeERaSm41QjA2b29ETFF3Nwp2cXBEV0JyNlNPcWhkNmVWS251Y1liVkhacGZtR0R6TlpHUHVYT0NjZkU5Q1dvcENUdmRYeWFMSndHcHVCem5rCnc5SlpJRDBDZ1lBNSttWDBKRVRkcmc3bTRrSXR4VXJvUTdyTStFYUpnUzRqZFV3cW5NRFdQYUhwYXR4bjFNeUgKUE5DcGFyK0dRUFU0WUNIZENxdFNDMERBVW1QeU5id2MrQmhxeTVKNHpSYnNST0pWU29QZ01iL0xkd09kc1F1NgprbGFuQVVvMHpqV2lZRDNsOTR2dmVqUGxZS1lRQmpZeTBScGhpQjV3VHBVK2d1b1lkS0JRVlE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
 
+
   - path: /etc/kubernetes/kube-apiserver/audit-policy.yaml
     owner: root:root
     permissions: '0644'
@@ -671,30 +672,6 @@ write_files:
       - level: Metadata
       - level: RequestResponse
 
-  - path: /etc/kubernetes/kube-apiserver/egress-selector-configuration.yaml
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: apiserver.k8s.io/v1beta1
-      kind: EgressSelectorConfiguration
-      egressSelections:
-      - name: cluster
-          connection:
-          proxyProtocol: HTTPConnect
-          transport:
-              tcp:
-                  url: "https://konnectivity-server-svc:8131"
-                  TLSConfig:
-                      caBundle: /pki/konnectivity-client/ca.crt
-                      clientKey: /pki/konnectivity-client/tls.key
-                      clientCert: /pki/konnectivity-client/tls.crt
-      - name: master
-          connection:
-          proxyProtocol: Direct
-      - name: etcd
-          connection:
-          proxyProtocol: Direct
 
   - path: /etc/kubernetes/kube-scheduler/kubeconfig
     owner: root:root
@@ -800,122 +777,6 @@ write_files:
           client-certificate: /etc/kubernetes/pki/certs/kubelet/kubelet-client.pem
           client-key: /etc/kubernetes/pki/certs/kubelet/kubelet-client-key.pem
 
-  # - path: /etc/kubernetes/kubelet/bootstrap-kubeconfig
-  #   owner: root:root
-  #   permissions: '0644'
-  #   content: |
-  #     ---
-  #     apiVersion: v1
-  #     clusters:
-  #     - cluster:
-  #         certificate-authority: /etc/kubernetes/pki/ca/kubernetes-ca.pem
-  #         server: https://127.0.0.1:6443
-  #       name: bootstrap
-  #     contexts:
-  #     - context:
-  #         cluster: bootstrap
-  #         user: kubelet-bootstrap
-  #       name: bootstrap
-  #     current-context: bootstrap
-  #     kind: Config
-  #     preferences: {}
-  #     users:
-  #     - name: kubelet-bootstrap
-  #       user:
-  #         token: 255120.2e8de3467d070f20
-
-  - path: /etc/kubernetes/kubelet/config.yaml
-    owner: root:root
-    permissions: '0644'
-    content: |
-      apiVersion: kubelet.config.k8s.io/v1beta1
-      authentication:
-        anonymous:
-          enabled: false
-        webhook:
-          cacheTTL: 0s
-          enabled: true
-        x509:
-          clientCAFile: "/etc/kubernetes/pki/ca/kubernetes-ca.pem"
-      tlsCertFile: /etc/kubernetes/pki/certs/kubelet/kubelet-server.pem
-      tlsPrivateKeyFile: /etc/kubernetes/pki/certs/kubelet/kubelet-server-key.pem
-      authorization:
-        mode: Webhook
-        webhook:
-          cacheAuthorizedTTL: 0s
-          cacheUnauthorizedTTL: 0s
-      cgroupDriver: systemd
-      clusterDNS:
-        - "29.64.0.10"
-      clusterDomain: cluster.local
-      cpuManagerReconcilePeriod: 0s
-      evictionPressureTransitionPeriod: 0s
-      fileCheckFrequency: 0s
-      healthzBindAddress: 127.0.0.1
-      healthzPort: 10248
-      httpCheckFrequency: 0s
-      imageMinimumGCAge: 0s
-      kind: KubeletConfiguration
-      logging:
-        flushFrequency: 0
-        options:
-          json:
-            infoBufferSize: "0"
-        verbosity: 0
-      memorySwap: {}
-      nodeStatusReportFrequency: 0s
-      nodeStatusUpdateFrequency: 0s
-      resolvConf: /etc/resolv.conf
-      rotateCertificates: true
-      runtimeRequestTimeout: 0s
-      serverTLSBootstrap: true
-      shutdownGracePeriod: 0s
-      shutdownGracePeriodCriticalPods: 0s
-      staticPodPath: "/etc/kubernetes/manifests"
-      streamingConnectionIdleTimeout: 0s
-      syncFrequency: 0s
-      volumeStatsAggPeriod: 0s
-      
-  - path: /etc/kubernetes/kubelet/service-args-custom.env
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ### file managed by puppet
-      # kubernetes kubelet (minion) config
-
-      # The address for the info server to serve on (set to 0.0.0.0 or "" for all interfaces)
-      # KUBELET_ADDRESS="--address=0.0.0.0"
-
-      # The port for the info server to serve on
-      # KUBELET_PORT="--port=10250"
-
-      # You may leave this blank to use the actual hostname
-      KUBELET_HOSTNAME="--hostname-override=${ instance_name }.${base_domain}"
-
-      # location of the api-server
-
-      # Add your own!
-      KUBELET_ARGS="
-          --config=/etc/kubernetes/kubelet/config.yaml
-          --kubeconfig=/etc/kubernetes/kubelet/kubeconfig
-          --container-runtime=remote
-          --container-runtime-endpoint=/run/containerd/containerd.sock
-          --pod-infra-container-image=k8s.gcr.io/pause:3.6
-          --root-dir=/var/lib/kubelet
-          --cni-bin-dir=/opt/cni/bin
-          --cni-conf-dir=/etc/cni/net.d
-          --network-plugin=cni
-          --register-node=true
-          --image-pull-progress-deadline=2m
-          --v=2
-          --bootstrap-kubeconfig=/etc/kubernetes/kubelet/bootstrap-kubeconfig
-          --cert-dir=/etc/kubernetes/pki/certs/kubelet
-          --rotate-certificates=true
-          --rotate-server-certificates=true
-          --anonymous-auth="false"
-          - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-apiserver/kubelet-server-key.pem
-          - --tls-cert-file=/etc/kubernetes/pki/certs/kube-apiserver/kubelet-server.pem
-      "
 
   - path: /etc/kubernetes/pki/vault-config
     owner: root:root
@@ -1405,6 +1266,8 @@ write_files:
           spec:
             subject:
               commonName: "system:node:${ instance_name }.${base_domain}"
+              organizations:
+                - system:nodes
             privateKey:
               algorithm: RSA
               encoding: PKCS1
@@ -1509,4 +1372,140 @@ write_files:
               - client auth
             ttl: 100h
           renewBefore: 50h
-          hostPath: "/etc/kubernetes/pki/certs/etcd/"
+          hostPath: "/etc/kubernetes/pki/certs/kube-apiserver/"
+
+
+  - path: /etc/kubernetes/kubelet/service/args-custom-hostname.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_HOSTNAME="
+          --hostname-override=${ instance_name }.${base_domain}
+          --node-labels=node.kubernetes.io/${instance_type}
+      "
+      
+  - path: /etc/kubernetes/kubelet/service/args-custom-cni.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_CNI_ARGS="
+          --cni-bin-dir=/opt/cni/bin
+          --cni-conf-dir=/etc/cni/net.d
+          --network-plugin=cni
+      "
+
+  - path: /etc/kubernetes/kubelet/service/args-custom-runtime.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_RUNTIME_ARGS="
+          --container-runtime=remote
+          --container-runtime-endpoint=/run/containerd/containerd.sock
+          --pod-infra-container-image=k8s.gcr.io/pause:3.6
+      "
+
+  - path: /etc/kubernetes/kubelet/service/args-custom-auth.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_AUTH_ARGS="
+          --anonymous-auth="false"
+      "
+
+  - path: /etc/kubernetes/kubelet/service/args-custom-configs.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_CONFIGS_ARGS="
+          --config=/etc/kubernetes/kubelet/config.yaml
+          --root-dir=/var/lib/kubelet
+          --register-node=true
+          --image-pull-progress-deadline=2m
+          --v=2
+      "
+
+  - path: /etc/kubernetes/kubelet/service/args-basic.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_BASIC_ARGS="
+          --register-node=true
+          --image-pull-progress-deadline=2m
+          --v=2
+      "
+
+  - path: /etc/kubernetes/kubelet/service/args-custom-kubeconfig.env
+    owner: root:root
+    permissions: '0644'
+    content: |
+      KUBELET_KUBECONFIG_ARGS="
+          --kubeconfig=/etc/kubernetes/kubelet/kubeconfig
+          --bootstrap-kubeconfig=/etc/kubernetes/kubelet/bootstrap-kubeconfig
+      "
+
+  - path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [Service]
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-hostname.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-cni.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-runtime.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-auth.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-configs.env
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-kubeconfig.env
+
+      ExecStart=/usr/bin/kubelet $KUBELET_HOSTNAME $KUBELET_CNI_ARGS $KUBELET_RUNTIME_ARGS $KUBELET_AUTH_ARGS $KUBELET_CONFIGS_ARGS $KUBELET_BASIC_ARGS $KUBELET_KUBECONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS $KUBELET_ARGS
+
+
+  - path: /etc/kubernetes/kubelet/config.yaml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      authentication:
+        anonymous:
+          enabled: false
+        webhook:
+          cacheTTL: 0s
+          enabled: true
+        x509:
+          clientCAFile: "/etc/kubernetes/pki/ca/kubernetes-ca.pem"
+      tlsCertFile: /etc/kubernetes/pki/certs/kubelet/kubelet-server.pem
+      tlsPrivateKeyFile: /etc/kubernetes/pki/certs/kubelet/kubelet-server-key.pem
+      authorization:
+        mode: Webhook
+        webhook:
+          cacheAuthorizedTTL: 0s
+          cacheUnauthorizedTTL: 0s
+      cgroupDriver: systemd
+      clusterDNS:
+        - "29.64.0.10"
+      clusterDomain: cluster.local
+      cpuManagerReconcilePeriod: 0s
+      evictionPressureTransitionPeriod: 0s
+      fileCheckFrequency: 0s
+      healthzBindAddress: 127.0.0.1
+      healthzPort: 10248
+      httpCheckFrequency: 0s
+      imageMinimumGCAge: 0s
+      kind: KubeletConfiguration
+      logging:
+        flushFrequency: 0
+        options:
+          json:
+            infoBufferSize: "0"
+        verbosity: 0
+      memorySwap: {}
+      nodeStatusReportFrequency: 0s
+      nodeStatusUpdateFrequency: 0s
+      resolvConf: /etc/resolv.conf
+      rotateCertificates: true
+      runtimeRequestTimeout: 0s
+      serverTLSBootstrap: true
+      shutdownGracePeriod: 0s
+      shutdownGracePeriodCriticalPods: 0s
+      staticPodPath: "/etc/kubernetes/manifests"
+      streamingConnectionIdleTimeout: 0s
+      syncFrequency: 0s
+      volumeStatsAggPeriod: 0s
