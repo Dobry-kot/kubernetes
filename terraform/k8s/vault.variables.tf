@@ -139,7 +139,7 @@ locals {
             allowed_domains                    = [
               "localhost",
               "*.${var.cluster_name}.${var.base_domain}",
-              "custom:*"
+              "system:node:*"
               ]
             organization                       = []
             client_flag                        = false

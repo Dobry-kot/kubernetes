@@ -138,21 +138,7 @@ write_files:
     content: |
       ---
       issuers:
-        - name: front-proxy-ca
-          vault:
-            server: "http://51.250.67.8:9200"
-            auth:
-              caBundle: ""
-              tlsInsecure: true
-              bootstrap:
-                token: "${temporary_token}"
-              appRole:
-                name: "test-role"
-                path: "clusters/${cluster_name}/approle"
-                roleIDLocalPath: /etc/kubernetes/pki/roleIDLocalPath
-                secretIDLocalPath: /etc/kubernetes/pki/secretIDLocalPath
-            timeout: 15s
-
+    
         - name: kubernetes-ca
           vault:
             server: "http://51.250.67.8:9200"
@@ -205,19 +191,7 @@ write_files:
             timeout: 15s
 
       certificates:
-        - name: front-proxy-ca
-          issuerRef:
-            name: front-proxy-ca
-          isCa: true
-          ca:
-            exportedKey: false
-            generate: false
-          vault:
-            role: ""
-            path: "clusters/${cluster_name}/pki/front-proxy"
-            rootCAPath: "clusters/${cluster_name}/pki/root"
-          hostPath: /etc/kubernetes/pki/ca/
-
+    
         - name: kubernetes-ca
           issuerRef:
             name: kubernetes-ca
@@ -260,7 +234,7 @@ write_files:
             path: "clusters/${cluster_name}/pki/kubernetes"
           spec:
             subject:
-              commonName: custom:kubelet-server
+              commonName: "system:node:${ instance_name }.${base_domain}"
             privateKey:
               algorithm: RSA
               encoding: PKCS1

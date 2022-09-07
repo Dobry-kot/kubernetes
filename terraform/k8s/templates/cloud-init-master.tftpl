@@ -1404,7 +1404,7 @@ write_files:
             path: "clusters/${cluster_name}/pki/kubernetes"
           spec:
             subject:
-              commonName: custom:kubelet-server
+              commonName: "system:node:${ instance_name }.${base_domain}"
             privateKey:
               algorithm: RSA
               encoding: PKCS1

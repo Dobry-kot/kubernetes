@@ -82,16 +82,14 @@ resource "yandex_compute_instance" "master" {
 
   metadata = {
     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    user-data = templatefile("templates/cloud-init.tftpl", { 
+    user-data = templatefile("templates/cloud-init-master.tftpl", { 
         temporary_token = "${vault_approle_auth_backend_login.login.client_token}",
         cluster_name    = "${var.cluster_name}",
         base_domain     = "${var.base_domain}",
-        # certs           = "${local.ssl}",
         ssh_key         = "${file("~/.ssh/id_rsa.pub")}"
         list_masters    = "${local.list_masters}"
         etcd_advertise_client_urls = "${local.etcd_advertise_client_urls}"
         instance_name   = "master-${index(keys(var.yc_availability_master_zones), each.key)}.${var.cluster_name}"
-        # lb_api_ip       = "${yandex_lb_network_load_balancer.master-lb.listener}"
         etcd_initial_cluster = "${local.etcd_initial_cluster}"
         kubeApiserverSaPub = "${tls_private_key.test.public_key_pem}"
         kubeApiserverSaPem = "${tls_private_key.test.private_key_pem}"
