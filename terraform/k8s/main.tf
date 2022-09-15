@@ -103,7 +103,7 @@ resource "yandex_compute_instance" "master" {
 ##-->
 resource "yandex_compute_instance" "workers" {
 
-  count = 1
+  count = 0
   name        = "worker-${count.index}-${var.cluster_name}"
   platform_id = "standard-v1"
   zone        = "ru-central1-a"
