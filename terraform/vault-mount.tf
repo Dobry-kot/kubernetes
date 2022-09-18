@@ -14,9 +14,3 @@ resource "vault_mount" "intermediate" {
   default_lease_ttl_seconds = 321408000
   max_lease_ttl_seconds     = 321408000
 }
-
-resource "vault_mount" "kvv2-example" {
-  path        = "${local.base_vault_path_kv}"
-  type        = "kv-v2"
-  description = "This is an example KV Version 2 secret engine mount"
-}

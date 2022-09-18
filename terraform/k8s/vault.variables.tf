@@ -1,6 +1,10 @@
 locals {
-  base_vault_path_kv  = "clusters/${var.cluster_name}/kv"
-  root_vault_path_pki = "pki-root"
+  base_local_path_certs   = "/etc/kubernetes/pki"
+  base_local_path_vault   = "/etc/kubernetes/vault"
+  base_vault_path_kv      = "clusters/${var.cluster_name}/kv"
+  base_vault_path_approle = "clusters/${var.cluster_name}/approle"
+  root_vault_path_pki     = "pki-root"
+  
   ssl = {
     global-args = {
       issuer-args = {
@@ -39,15 +43,48 @@ locals {
         use_csr_common_name                 = true
         
       }
+      key-keeper-args = {
+        spec = {
+          subject = {
+            commonName          = ""
+            country             = ""
+            localite            = ""
+            organization        = ""
+            organizationalUnit  = ""
+            province            = ""
+            postalCode          = ""
+            streetAddress       = ""
+            serialNumber        = ""
+          }
+          privateKey = {
+            algorithm = "RSA"
+            encoding  = "PKCS1"
+            size      = 4096
+          }
+          ttl         = "100h"
+          ipAddresses = {}
+          hostnames   = []
+          usages      = []
+        }
+        renewBefore   = "50h"
+        trigger       = []
+
+      }
     }
+
     intermediate = {
-      kubernetes = {
-        common_name  = "Kubernetes Intermediate CA",
-        description  = "Kubernetes Intermediate CA"
-        path         = "clusters/${var.cluster_name}/pki/kubernetes"
-        root_path    = "clusters/${var.cluster_name}/pki/root"
-        type         = "internal"
-        organization = "Kubernetes"
+      kubernetes-ca = {
+        common_name   = "Kubernetes Intermediate CA",
+        description   = "Kubernetes Intermediate CA"
+        path          = "clusters/${var.cluster_name}/pki/kubernetes"
+        root_path     = "clusters/${var.cluster_name}/pki/root"
+        host-path     = "${local.base_local_path_certs}/ca"
+        type          = "internal"
+        organization  = "Kubernetes"
+        exportedKey  = false
+        generate     = false
+        default_lease_ttl_seconds = 321408000
+        max_lease_ttl_seconds     = 321408000
         issuers = {
           kube-controller-manager-client = {
             issuer-args = {
@@ -57,6 +94,68 @@ locals {
                 "system:kube-controller-manager"
               ]
               client_flag = true
+            }
+            certificates = {
+              kube-controller-manager-client = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "system:kube-controller-manager"
+                    }
+                    usages = [
+                      "client auth"
+                    ]
+                    host-path = "${local.base_local_path_certs}/certs/kube-controller-manager"
+                  }
+                }
+              }
+
+            }
+          },
+          kube-controller-manager-server = {
+            issuer-args = {
+              backend   = "clusters/${var.cluster_name}/pki/kubernetes"
+              key_usage = ["DigitalSignature", "KeyAgreement", "KeyEncipherment", "ServerAuth"]
+              allowed_domains = [
+                "localhost",
+                "kube-controller-manager.default",
+                "kube-controller-manager.default.svc",
+                "kube-controller-manager.default.svc.cluster",
+                "kube-controller-manager.default.svc.cluster.local",
+                "custom:kube-controller-manager"
+              ]
+              server_flag     = true
+              allow_ip_sans   = true
+              allow_localhost = true
+            }
+            certificates = {
+              kube-controller-manager-server = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "custom:kube-controller-manager"
+                    }
+                    usages = [
+                      "server auth",
+                    ]
+                    hostnames = [
+                      "localhost",
+                      "kube-controller-manager.default",
+                      "kube-controller-manager.default.svc",
+                      "kube-controller-manager.default.svc.cluster",
+                      "kube-controller-manager.default.svc.cluster.local",
+                    ]
+                    ipAddresses = {
+                      interfaces = [
+                        "lo",
+                        "eth*"
+                      ]
+                    }
+                    host-path = "${local.base_local_path_certs}/certs/kube-controller-manager"
+                  }
+                }
+              }
+
             }
           },
           kube-apiserver-kubelet-client = {
@@ -68,6 +167,24 @@ locals {
               ]
               organization = ["system:masters"]
               client_flag  = true
+            }
+            certificates = {
+              kube-apiserver-kubelet-client = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "custom:kube-apiserver-kubelet-client",
+                      organizationalUnit = [
+                        "system:masters"
+                        ]
+                    }
+                    usages = [
+                      "client auth"
+                    ]
+                    host-path = "${local.base_local_path_certs}/certs/kube-apiserver"
+                  }
+                }
+              }
             }
           },
           kube-apiserver = {
@@ -88,22 +205,38 @@ locals {
               allow_ip_sans   = true
               allow_localhost = true
             }
-          },
-          kube-controller-manager-server = {
-            issuer-args = {
-              backend   = "clusters/${var.cluster_name}/pki/kubernetes"
-              key_usage = ["DigitalSignature", "KeyAgreement", "KeyEncipherment", "ServerAuth"]
-              allowed_domains = [
-                "localhost",
-                "kube-controller-manager.default",
-                "kube-controller-manager.default.svc",
-                "kube-controller-manager.default.svc.cluster",
-                "kube-controller-manager.default.svc.cluster.local",
-                "custom:kube-controller-manager"
-              ]
-              server_flag     = true
-              allow_ip_sans   = true
-              allow_localhost = true
+            certificates = {
+              kube-apiserver = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "custom:kube-apiserver"
+                    }
+                    usages = [
+                      "server auth",
+                    ]
+                    host-path = "${local.base_local_path_certs}/certs/kube-apiserver"
+                    hostnames = [
+                      "localhost",
+                      "kubernetes",
+                      "kubernetes.default",
+                      "kubernetes.default.svc",
+                      "kubernetes.default.svc.cluster",
+                      "kubernetes.default.svc.cluster.local",
+                      "api.${var.cluster_name}.${var.base_domain}"
+                    ]
+                    ipAddresses = {
+                      interfaces = [
+                        "lo",
+                        "eth*"
+                      ]
+                      dnsLookup = [
+                        "api.${var.cluster_name}.${var.base_domain}"
+                      ]
+                    }
+                  }
+                }
+              }
             }
           },
           kube-scheduler-server = {
@@ -122,6 +255,34 @@ locals {
               allow_ip_sans   = true
               allow_localhost = true
             }
+            certificates = {
+              kube-scheduler-server = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "custom:kube-scheduler"
+                    }
+                    usages = [
+                      "server auth",
+                    ]
+                    hostnames = [
+                      "localhost",
+                      "kube-scheduler.default",
+                      "kube-scheduler.default.svc",
+                      "kube-scheduler.default.svc.cluster",
+                      "kube-scheduler.default.svc.cluster.local",
+                    ]
+                    ipAddresses = {
+                      interfaces = [
+                        "lo",
+                        "eth*"
+                      ]
+                    }
+                    host-path = "${local.base_local_path_certs}/certs/kube-scheduler"
+                  }
+                }
+              }
+            }
           },
           kube-scheduler-client = {
             issuer-args = {
@@ -132,6 +293,21 @@ locals {
               ]
               client_flag = true
             }
+            certificates = {
+              kube-scheduler-client = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "system:kube-scheduler"
+                    }
+                    usages = [
+                      "client auth"
+                    ]
+                    host-path = "${local.base_local_path_certs}/certs/kube-scheduler"
+                  }
+                }
+              }
+            }
           },
           kubelet-server = {
             issuer-args = {
@@ -140,6 +316,7 @@ locals {
               allowed_domains = [
                 "localhost",
                 "*.${var.cluster_name}.${var.base_domain}",
+                "${ var.instance_name }.${var.cluster_name}.${var.base_domain}",
                 "system:node:*"
               ]
               organization = [
@@ -148,6 +325,37 @@ locals {
               server_flag     = true
               allow_ip_sans   = true
               allow_localhost = true
+            }
+            certificates = {
+              kubelet-server = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "system:node:${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
+                      organizations = [
+                        "system:nodes"
+                      ]
+                    }
+                    usages = [
+                      "server auth",
+                    ]
+                    hostnames = [
+                      "localhost",
+                      "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
+                    ]
+                    ipAddresses = {
+                      interfaces = [
+                        "lo",
+                        "eth*"
+                      ]
+                      dnsLookup = [
+                        "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
+                      ]
+                    }
+                    host-path = "${local.base_local_path_certs}/certs/kubelet"
+                  }
+                }
+              }
             }
           }
           kubelet-client = {
@@ -162,16 +370,39 @@ locals {
               ]
               client_flag = true
             }
+            certificates = {
+              kubelet-client = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "system:node:${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
+                      organization = [
+                        "system:nodes"
+                      ]
+                    }
+                    usages = [
+                      "client auth"
+                    ]
+                    host-path = "${local.base_local_path_certs}/certs/kubelet"
+                  }
+                }
+              }
+            }
           },
         }
       }
-      etcd = {
+      etcd-ca = {
         common_name  = "ETCD Intermediate CA",
         description  = "ETCD Intermediate CA"
         path         = "clusters/${var.cluster_name}/pki/etcd"
         root_path    = "clusters/${var.cluster_name}/pki/root"
+        host-path    = "${local.base_local_path_certs}/ca"
         type         = "internal"
         organization = "Kubernetes"
+        exportedKey  = false
+        generate     = false
+        default_lease_ttl_seconds = 321408000
+        max_lease_ttl_seconds     = 321408000
         issuers = {
           etcd-server = {
             issuer-args = {
@@ -186,6 +417,34 @@ locals {
               server_flag     = true
               allow_ip_sans   = true
               allow_localhost = true
+            }
+            certificates = {
+              etcd-server = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "system:etcd-server"
+                    }
+                    usages = [
+                      "server auth",
+                    ]
+                    host-path = "${local.base_local_path_certs}/certs/etcd"
+                    hostnames = [
+                      "localhost",
+                      "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
+                    ]
+                    ipAddresses = {
+                      interfaces = [
+                        "lo",
+                        "eth*"
+                      ]
+                      dnsLookup = [
+                        "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
+                      ]
+                    }
+                  }
+                }
+              }
             }
           },
           etcd-peer = {
@@ -203,6 +462,35 @@ locals {
               allow_ip_sans   = true
               allow_localhost = true
             }
+            certificates = {
+              etcd-peer = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "system:etcd-peer"
+                    }
+                    usages = [
+                      "server auth",
+                      "client auth"
+                    ]
+                    hostnames = [
+                      "localhost",
+                      "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
+                    ]
+                    ipAddresses = {
+                      interfaces = [
+                        "lo",
+                        "eth*"
+                      ]
+                      dnsLookup = [
+                        "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
+                      ]
+                    }
+                    host-path = "${local.base_local_path_certs}/certs/etcd"
+                  }
+                }
+              }
+            }
           },
           etcd-client = {
             issuer-args = {
@@ -215,16 +503,36 @@ locals {
               ]
               client_flag = true
             }
+            certificates = {
+              kube-apiserver-etcd-client = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "system:kube-apiserver-etcd-client"
+                    }
+                    usages = [
+                      "client auth"
+                    ]
+                    host-path = "${local.base_local_path_certs}/certs/kube-apiserver"
+                  }
+                }
+              }
+            }
           },
         }
       }
-      front-proxy = {
+      front-proxy-ca = {
         common_name  = "Front-proxy Intermediate CA",
         description  = "Front-proxy Intermediate CA"
         path         = "clusters/${var.cluster_name}/pki/front-proxy"
         root_path    = "clusters/${var.cluster_name}/pki/root"
+        host-path    = "${local.base_local_path_certs}/ca"
         type         = "internal"
         organization = "Kubernetes"
+        exportedKey  = false
+        generate     = false
+        default_lease_ttl_seconds = 321408000
+        max_lease_ttl_seconds     = 321408000
         issuers = {
           front-proxy-client = {
             issuer-args = {
@@ -235,6 +543,21 @@ locals {
                 "custom:kube-apiserver-front-proxy-client"
               ]
               client_flag = true
+            }
+            certificates = {
+              front-proxy-client = {
+                key-keeper-args = {
+                  spec = {
+                    subject = {
+                      commonName = "custom:kube-apiserver-front-proxy-client"
+                    }
+                    usages = [
+                      "client auth"
+                    ]
+                    host-path = "${local.base_local_path_certs}/certs/kube-apiserver"
+                  }
+                }
+              }
             }
           },
         }
@@ -248,6 +571,8 @@ locals {
         root_path   = "${local.root_vault_path_pki}"
         common_name = "Kubernetes Root CA"
         type        = "internal"
+        default_lease_ttl_seconds = 321408000
+        max_lease_ttl_seconds     = 321408000
       }
     }
     certificates = {
@@ -256,52 +581,20 @@ locals {
 }
 
 locals {
-  kubernetes_issuers  = local.ssl.intermediate["kubernetes"].issuers
-  etcd_issuers        = local.ssl.intermediate["etcd"].issuers
-  front_proxy_issuers = local.ssl.intermediate["front-proxy"].issuers
-}
+  issuers_content = flatten([
+  for name in keys(local.ssl.intermediate) : [
+    for issuer_name,issuer in local.ssl.intermediate[name].issuers : {
+      "${name}:${issuer_name}" = merge("${local.ssl["global-args"]["issuer-args"]}", issuer["issuer-args"])
+        }
+      ]
+    ]
+  )
+  issuers_content_map = { for item in local.issuers_content :
+    keys(item)[0] => values(item)[0]
+  }
 
-locals {
-  kubernetes_issuers_content = flatten([
-    for name, kubernetes_issuer_content in "${local.kubernetes_issuers}" :
-    {
-      "${name}" = {
-        value = merge("${local.ssl["global-args"]["issuer-args"]}", kubernetes_issuer_content["issuer-args"])
-      }
-    }
-  ])
-  kubernetes_issuers_content_map = { for item in local.kubernetes_issuers_content :
-    keys(item)[0] => values(item)[0]
-  }
-  etcd_issuers_content = flatten([
-    for name, etcd_issuer_content in "${local.etcd_issuers}" :
-    {
-      "${name}" = {
-        value = merge("${local.ssl["global-args"]["issuer-args"]}", etcd_issuer_content["issuer-args"])
-      }
-    }
-  ])
-  etcd_issuers_content_map = { for item in local.etcd_issuers_content :
-    keys(item)[0] => values(item)[0]
-  }
-  front_proxy_issuers_content = flatten([
-    for name, front_proxy_issuer_content in "${local.front_proxy_issuers}" :
-    {
-      "${name}" = {
-        value = merge("${local.ssl["global-args"]["issuer-args"]}", front_proxy_issuer_content["issuer-args"])
-      }
-    }
-  ])
-  front_proxy_issuers_content_map = { for item in local.front_proxy_issuers_content :
-    keys(item)[0] => values(item)[0]
-  }
-  issuers_content_map_list = [
-    "kubernetes_issuers_content_map",
-    "etcd_issuers_content_map",
-    "front_proxy_issuers_content_map"
-  ]
-}
+  access_cidr_availability_zones = flatten([for zone_name in keys(var.availability_zones) : [var.availability_zones[zone_name]]])
+  access_cidr_vault = "${concat(local.access_cidr_availability_zones, var.bastion_cidr)}"
 
-output "name" {
-  value = local.issuers_content_map_list
+
 }

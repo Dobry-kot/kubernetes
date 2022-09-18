@@ -1,4 +1,27 @@
 
+variable "bastion_cidr" {
+  type = list(string)
+  default = [
+    "176.112.235.30/32"
+  ]
+}
+
+variable "instance_name" {
+  type = string
+  default = "default"
+}
+variable "vault_config" {
+  type = object({
+    server          = string
+    caBundle        = string
+    tlsInsecure     = bool
+  })
+  default = {
+    server      = "http://51.250.67.8:9200"
+    caBundle    = ""
+    tlsInsecure = true
+  }
+}
 
 variable "cluster_name" {
   type = string
@@ -43,7 +66,7 @@ variable "worker_flavor" {
 
 
 
-variable "yc_availability_master_zones"{
+variable "availability_zones"{
   type = object({
     ru-central1-a = string
     ru-central1-b = string
@@ -57,23 +80,18 @@ variable "yc_availability_master_zones"{
 }
 
 locals {
-  list_masters               = formatlist("master-%s.${var.cluster_name}.${var.base_domain}", range(length(var.yc_availability_master_zones)))
-  etcd_list_servers          = formatlist("https://master-%s.${var.cluster_name}.${var.base_domain}:2379", range(length(var.yc_availability_master_zones)))
-  etcd_list_initial_cluster  = formatlist("master-%s.${var.cluster_name}.${var.base_domain}=https://master-%s.${var.cluster_name}.${var.base_domain}:2380", range(length(var.yc_availability_master_zones)), range(length(var.yc_availability_master_zones)))
+  list_masters               = formatlist("master-%s.${var.cluster_name}.${var.base_domain}", 
+                                            range(length(var.availability_zones)))
+  etcd_list_servers          = formatlist("https://master-%s.${var.cluster_name}.${var.base_domain}:2379", 
+                                            range(length(var.availability_zones)))
+  etcd_list_initial_cluster  = formatlist("master-%s.${var.cluster_name}.${var.base_domain}=https://master-%s.${var.cluster_name}.${var.base_domain}:2380", 
+                                            range(length(var.availability_zones)), 
+                                            range(length(var.availability_zones)))
 
   etcd_advertise_client_urls = join(",", local.etcd_list_servers)
   etcd_initial_cluster       = join(",", local.etcd_list_initial_cluster)
 }
 
-locals {
-    vault_base_role = templatefile("templates/vault-base-role.tftpl", { 
-        pki_path           = "${local.ssl}",
-        cluster_name       = "${var.cluster_name}",
-        pki_path_root      = "${local.root_vault_path_pki}",
-        base_vault_path_kv = "${local.base_vault_path_kv}",
-        }
-    )
-}
 
 locals {
   worker_replicas = range(3)

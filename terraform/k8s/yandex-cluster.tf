@@ -8,7 +8,7 @@ resource "yandex_vpc_network" "cluster-vpc" {
 #### SUBNETS ######
 ##-->
 resource "yandex_vpc_subnet" "cluster-subnet" {
-  for_each        = "${var.yc_availability_master_zones}"
+  for_each        = "${var.availability_zones}"
   v4_cidr_blocks  = [each.value]
   zone            = "${each.key}"
   network_id      = "${yandex_vpc_network.cluster-vpc.id}"
@@ -26,9 +26,9 @@ resource "yandex_dns_zone" "zone1" {
 }
 
 resource "yandex_dns_recordset" "master" {
-  for_each  = "${var.yc_availability_master_zones}"
+  for_each  = "${var.availability_zones}"
   zone_id   = yandex_dns_zone.zone1.id
-  name      = "master-${index(keys(var.yc_availability_master_zones), each.key)}.${var.cluster_name}.${var.base_domain}."
+  name      = "master-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}.${var.base_domain}."
   type      = "A"
   ttl       = 60
   data      = ["${yandex_compute_instance.master[each.key].network_interface.0.ip_address}"]
@@ -37,7 +37,7 @@ resource "yandex_dns_recordset" "master" {
 # resource "yandex_dns_recordset" "worker" {
 #   for_each  = "${local.worker_replicas}"
 #   zone_id   = yandex_dns_zone.zone1.id
-#   name      = "worker-${index(keys(var.yc_availability_master_zones), each.key)}.${var.cluster_name}.${var.base_domain}."
+#   name      = "worker-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}.${var.base_domain}."
 #   type      = "A"
 #   ttl       = 60
 #   data      = ["${yandex_compute_instance.master[each.key].network_interface.0.ip_address}"]
@@ -58,8 +58,8 @@ resource "yandex_dns_recordset" "api" {
 ##-->
 resource "yandex_compute_instance" "master" {
 
-  for_each    = "${var.yc_availability_master_zones}"
-  name        = "master-${index(keys(var.yc_availability_master_zones), each.key)}-${var.cluster_name}"
+  for_each    = "${var.availability_zones}"
+  name        = "master-${index(keys(var.availability_zones), each.key)}-${var.cluster_name}"
   platform_id = "standard-v1"
   zone        = "${each.key}"
 
@@ -83,60 +83,81 @@ resource "yandex_compute_instance" "master" {
   metadata = {
     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
     user-data = templatefile("templates/cloud-init-master.tftpl", { 
-        temporary_token = "${vault_approle_auth_backend_login.login.client_token}",
+        temporary_token = "",
         cluster_name    = "${var.cluster_name}",
         base_domain     = "${var.base_domain}",
         ssh_key         = "${file("~/.ssh/id_rsa.pub")}"
         list_masters    = "${local.list_masters}"
         etcd_advertise_client_urls = "${local.etcd_advertise_client_urls}"
-        instance_name   = "master-${index(keys(var.yc_availability_master_zones), each.key)}.${var.cluster_name}"
+        instance_name   = "master-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
         instance_type   = "master"
         etcd_initial_cluster = "${local.etcd_initial_cluster}"
-        kubeApiserverSaPub = "${tls_private_key.test.public_key_pem}"
-        kubeApiserverSaPem = "${tls_private_key.test.private_key_pem}"
-        
+        kubeApiserverSaPub = "${tls_private_key.kube_apiserver_sa_key.public_key_pem}"
+        kubeApiserverSaPem = "${tls_private_key.kube_apiserver_sa_key.private_key_pem}"
+        key_keeper_config = templatefile("templates/key-keeper-config.tfttpl", { 
+          intermediates           = "${local.ssl.intermediate}",
+          cluster_name            = var.cluster_name
+          base_local_path_vault   = local.base_local_path_vault
+          base_vault_path_approle = local.base_vault_path_approle
+          base_certificate_atrs   = "${local.ssl.global-args.key-keeper-args}"
+          vault_config            = var.vault_config
+          instance_name           = "master-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
+          bootstrap_tokens_ca     = "${vault_approle_auth_backend_login.kubernetes-ca-login}"
+          bootstrap_tokens_sign   = "${vault_approle_auth_backend_login.kubernetes-sign-login}"
         })
+      })
   }
 }
 
-#### workers ######
-##-->
-resource "yandex_compute_instance" "workers" {
+### workers ######
+#-->
+# resource "yandex_compute_instance" "workers" {
 
-  count = 0
-  name        = "worker-${count.index}-${var.cluster_name}"
-  platform_id = "standard-v1"
-  zone        = "ru-central1-a"
+#   count = 0
+#   name        = "worker-${count.index}-${var.cluster_name}"
+#   platform_id = "standard-v1"
+#   zone        = "ru-central1-a"
 
-  resources {
-    cores         = "${var.worker_flavor.core}"
-    memory        = "${var.worker_flavor.memory}"
-    core_fraction = "${var.worker_flavor.core_fraction}"
-  }
+#   resources {
+#     cores         = "${var.worker_flavor.core}"
+#     memory        = "${var.worker_flavor.memory}"
+#     core_fraction = "${var.worker_flavor.core_fraction}"
+#   }
 
-  boot_disk {
-    initialize_params {
-      image_id = "${var.base_os_image}"
-    }
-  }
+#   boot_disk {
+#     initialize_params {
+#       image_id = "${var.base_os_image}"
+#     }
+#   }
 
-  network_interface {
-    subnet_id = "${yandex_vpc_subnet.cluster-subnet["ru-central1-a"].id}"
-    nat = true
-  }
+#   network_interface {
+#     subnet_id = "${yandex_vpc_subnet.cluster-subnet["ru-central1-a"].id}"
+#     nat = true
+#   }
 
-  metadata = {
-    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
-    user-data = templatefile("templates/cloud-init-worker.tftpl", { 
-        temporary_token = "${vault_approle_auth_backend_login.login.client_token}",
-        cluster_name    = "${var.cluster_name}",
-        base_domain     = "${var.base_domain}",
-        ssh_key         = "${file("~/.ssh/id_rsa.pub")}"
-        instance_name   = "worker-${count.index}.${var.cluster_name}"
-        instance_type   = "worker"
-        })
-  }
-}
+#   metadata = {
+#     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
+#     user-data = templatefile("templates/cloud-init-worker.tftpl", { 
+#         temporary_token = "",
+#         cluster_name    = "${var.cluster_name}",
+#         base_domain     = "${var.base_domain}",
+#         ssh_key         = "${file("~/.ssh/id_rsa.pub")}"
+#         instance_name   = "worker-${count.index}.${var.cluster_name}"
+#         instance_type   = "worker"
+#         key_keeper_config = templatefile("templates/key-keeper-config.tfttpl", { 
+#           intermediates           = "${local.ssl.intermediate}",
+#           cluster_name            = var.cluster_name
+#           base_local_path_vault   = local.base_local_path_vault
+#           base_vault_path_approle = local.base_vault_path_approle
+#           base_certificate_atrs   = "${local.ssl.global-args.key-keeper-args}"
+#           vault_config            = var.vault_config
+#           instance_name           = "worker-${count.index}.${var.cluster_name}"
+#           bootstrap_tokens_ca     = "${vault_approle_auth_backend_login.kubernetes-ca-login}"
+#           bootstrap_tokens_sign   = "${vault_approle_auth_backend_login.kubernetes-sign-login}"
+#         })
+#       })
+#   }
+# }
 #### LB ######
 ##-->
 resource "yandex_lb_target_group" "master-tg" {
@@ -144,7 +165,7 @@ resource "yandex_lb_target_group" "master-tg" {
   region_id   = "ru-central1"
 
   dynamic "target" {
-    for_each = "${var.yc_availability_master_zones}"
+    for_each = "${var.availability_zones}"
     content {
       subnet_id = "${yandex_vpc_subnet.cluster-subnet[target.key].id}"
       address   = "${yandex_compute_instance.master[target.key].network_interface.0.ip_address}"

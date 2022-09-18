@@ -1,0 +1,24 @@
+
+path "${pki_path}/sign/${issuer_name}" {
+    capabilities = ["update"]
+}
+
+path "${pki_path}/${issuer_name}/certs" {
+    capabilities = ["list"]
+}
+
+path "${pki_path}/cert/ca" {
+    capabilities = ["read"]
+}
+
+path "auth/clusters/${cluster_name}/approle/role/${approle_name}/*" {
+    capabilities = ["read"]
+}
+
+path "auth/token/renew" {
+    capabilities = ["update"]
+}
+
+path "auth/token/renew-self" {
+    capabilities = ["update"]
+}
