@@ -84,26 +84,63 @@ resource "yandex_compute_instance" "master" {
     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
     user-data = templatefile("templates/cloud-init-master.tftpl", { 
         temporary_token = "",
+        ssl = local.ssl
         cluster_name    = "${var.cluster_name}",
         base_domain     = "${var.base_domain}",
         ssh_key         = "${file("~/.ssh/id_rsa.pub")}"
         list_masters    = "${local.list_masters}"
+        base_local_path_certs = local.base_local_path_certs
         etcd_advertise_client_urls = "${local.etcd_advertise_client_urls}"
         instance_name   = "master-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
         instance_type   = "master"
         etcd_initial_cluster = "${local.etcd_initial_cluster}"
         kubeApiserverSaPub = "${tls_private_key.kube_apiserver_sa_key.public_key_pem}"
         kubeApiserverSaPem = "${tls_private_key.kube_apiserver_sa_key.private_key_pem}"
-        key_keeper_config = templatefile("templates/key-keeper-config.tfttpl", { 
-          intermediates           = "${local.ssl.intermediate}",
-          cluster_name            = var.cluster_name
-          base_local_path_vault   = local.base_local_path_vault
-          base_vault_path_approle = local.base_vault_path_approle
-          base_certificate_atrs   = "${local.ssl.global-args.key-keeper-args}"
-          vault_config            = var.vault_config
-          instance_name           = "master-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
-          bootstrap_tokens_ca     = "${vault_approle_auth_backend_login.kubernetes-ca-login}"
-          bootstrap_tokens_sign   = "${vault_approle_auth_backend_login.kubernetes-sign-login}"
+        kubelet-settings   = local.kubelet-settings
+
+        key_keeper_config = templatefile("templates/key-keeper-config.tftmpl", { 
+          intermediates                   = "${local.ssl.intermediate}",
+          cluster_name                    = var.cluster_name
+          base_domain                     = var.base_domain
+          base_local_path_vault           = local.base_local_path_vault
+          base_vault_path_approle         = local.base_vault_path_approle
+          base_certificate_atrs           = "${local.ssl.global-args.key-keeper-args}"
+          vault_config                    = var.vault_config
+          instance_name                   = "master-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
+          bootstrap_tokens_ca             = "${vault_approle_auth_backend_login.kubernetes-ca-login}"
+          bootstrap_tokens_sign           = "${vault_approle_auth_backend_login.kubernetes-sign-login}"
+          
+        })
+        etcd-manifest = templatefile("templates/manifests/etcd.yaml.tftmpl", {
+          etcd_initial_cluster            = local.etcd_initial_cluster
+          instance_name                   = "master-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
+          cluster_name                    = var.cluster_name
+          base_domain                     = var.base_domain
+          base_local_path_certs           = local.base_local_path_certs
+          ssl                             = "${local.ssl}"
+          etcd-image                      = var.etcd-image.repository
+          etcd-version                    = var.etcd-image.version
+        })
+        kube-apiserver-manifest           = templatefile("templates/manifests/kube-apiserver.yaml.tftmpl", {
+          etcd_advertise_client_urls      = local.etcd_advertise_client_urls
+          service_cidr                    = "29.64.0.0/16"
+          base_local_path_certs           = local.base_local_path_certs
+          ssl                             = "${local.ssl}"
+          kube-apiserver-image            = var.kube-apiserver-image
+          kubernetes-version              = var.kubernetes-version
+        })
+        kube-controller-manager-manifest  = templatefile("templates/manifests/kube-controller-manager.yaml.tftmpl", {
+          service_cidr                    = "29.64.0.0/16"
+          base_local_path_certs           = local.base_local_path_certs
+          ssl                             = "${local.ssl}"
+          kube-controller-manager-image   = var.kube-controller-manager-image
+          kubernetes-version              = var.kubernetes-version
+        })
+        kube-scheduler-manifest           = templatefile("templates/manifests/kube-scheduler.yaml.tftmpl", {
+          base_local_path_certs           = local.base_local_path_certs
+          ssl                             = "${local.ssl}"
+          kube-scheduler-image            = var.kube-scheduler-image
+          kubernetes-version              = var.kubernetes-version
         })
       })
   }

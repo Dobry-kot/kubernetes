@@ -17,8 +17,8 @@ resource "vault_approle_auth_backend_role" "kubernetes-ca" {
   role_name               = "${each.key}"
   token_ttl               = 300
   token_policies          = ["default", vault_policy.kubernetes-ca[each.key].name]
-  secret_id_bound_cidrs   = local.access_cidr_vault
-  token_bound_cidrs       = local.access_cidr_vault
+  secret_id_bound_cidrs   = []
+  token_bound_cidrs       = []
 }
 
 resource "vault_approle_auth_backend_role_secret_id" "kubernetes-ca-id" {

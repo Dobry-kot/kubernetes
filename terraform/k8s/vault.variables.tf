@@ -1,6 +1,6 @@
 locals {
   base_local_path_certs   = "/etc/kubernetes/pki"
-  base_local_path_vault   = "/etc/kubernetes/vault"
+  base_local_path_vault   = "/var/lib/key-keeper/vault"
   base_vault_path_kv      = "clusters/${var.cluster_name}/kv"
   base_vault_path_approle = "clusters/${var.cluster_name}/approle"
   root_vault_path_pki     = "pki-root"
@@ -78,7 +78,7 @@ locals {
         description   = "Kubernetes Intermediate CA"
         path          = "clusters/${var.cluster_name}/pki/kubernetes"
         root_path     = "clusters/${var.cluster_name}/pki/root"
-        host-path     = "${local.base_local_path_certs}/ca"
+        host_path     = "${local.base_local_path_certs}/ca"
         type          = "internal"
         organization  = "Kubernetes"
         exportedKey  = false
@@ -105,7 +105,7 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host-path = "${local.base_local_path_certs}/certs/kube-controller-manager"
+                    host_path = "${local.base_local_path_certs}/certs/kube-controller-manager"
                   }
                 }
               }
@@ -151,7 +151,7 @@ locals {
                         "eth*"
                       ]
                     }
-                    host-path = "${local.base_local_path_certs}/certs/kube-controller-manager"
+                    host_path = "${local.base_local_path_certs}/certs/kube-controller-manager"
                   }
                 }
               }
@@ -181,7 +181,7 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host-path = "${local.base_local_path_certs}/certs/kube-apiserver"
+                    host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                   }
                 }
               }
@@ -215,7 +215,7 @@ locals {
                     usages = [
                       "server auth",
                     ]
-                    host-path = "${local.base_local_path_certs}/certs/kube-apiserver"
+                    host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                     hostnames = [
                       "localhost",
                       "kubernetes",
@@ -278,7 +278,7 @@ locals {
                         "eth*"
                       ]
                     }
-                    host-path = "${local.base_local_path_certs}/certs/kube-scheduler"
+                    host_path = "${local.base_local_path_certs}/certs/kube-scheduler"
                   }
                 }
               }
@@ -303,7 +303,7 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host-path = "${local.base_local_path_certs}/certs/kube-scheduler"
+                    host_path = "${local.base_local_path_certs}/certs/kube-scheduler"
                   }
                 }
               }
@@ -341,18 +341,15 @@ locals {
                     ]
                     hostnames = [
                       "localhost",
-                      "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
                     ]
                     ipAddresses = {
                       interfaces = [
                         "lo",
                         "eth*"
                       ]
-                      dnsLookup = [
-                        "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
-                      ]
+                      dnsLookup = []
                     }
-                    host-path = "${local.base_local_path_certs}/certs/kubelet"
+                    host_path = "${local.base_local_path_certs}/certs/kubelet"
                   }
                 }
               }
@@ -383,7 +380,7 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host-path = "${local.base_local_path_certs}/certs/kubelet"
+                    host_path = "${local.base_local_path_certs}/certs/kubelet"
                   }
                 }
               }
@@ -396,7 +393,7 @@ locals {
         description  = "ETCD Intermediate CA"
         path         = "clusters/${var.cluster_name}/pki/etcd"
         root_path    = "clusters/${var.cluster_name}/pki/root"
-        host-path    = "${local.base_local_path_certs}/ca"
+        host_path    = "${local.base_local_path_certs}/ca"
         type         = "internal"
         organization = "Kubernetes"
         exportedKey  = false
@@ -428,19 +425,16 @@ locals {
                     usages = [
                       "server auth",
                     ]
-                    host-path = "${local.base_local_path_certs}/certs/etcd"
+                    host_path = "${local.base_local_path_certs}/certs/etcd"
                     hostnames = [
                       "localhost",
-                      "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
                     ]
                     ipAddresses = {
                       interfaces = [
                         "lo",
                         "eth*"
                       ]
-                      dnsLookup = [
-                        "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
-                      ]
+                      dnsLookup = []
                     }
                   }
                 }
@@ -475,18 +469,15 @@ locals {
                     ]
                     hostnames = [
                       "localhost",
-                      "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
                     ]
                     ipAddresses = {
                       interfaces = [
                         "lo",
                         "eth*"
                       ]
-                      dnsLookup = [
-                        "${ var.instance_name }.${var.cluster_name}.${var.base_domain}"
-                      ]
+                      dnsLookup = []
                     }
-                    host-path = "${local.base_local_path_certs}/certs/etcd"
+                    host_path = "${local.base_local_path_certs}/certs/etcd"
                   }
                 }
               }
@@ -513,7 +504,7 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host-path = "${local.base_local_path_certs}/certs/kube-apiserver"
+                    host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                   }
                 }
               }
@@ -526,7 +517,7 @@ locals {
         description  = "Front-proxy Intermediate CA"
         path         = "clusters/${var.cluster_name}/pki/front-proxy"
         root_path    = "clusters/${var.cluster_name}/pki/root"
-        host-path    = "${local.base_local_path_certs}/ca"
+        host_path    = "${local.base_local_path_certs}/ca"
         type         = "internal"
         organization = "Kubernetes"
         exportedKey  = false
@@ -554,7 +545,7 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host-path = "${local.base_local_path_certs}/certs/kube-apiserver"
+                    host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                   }
                 }
               }
@@ -598,3 +589,23 @@ locals {
 
 
 }
+
+
+locals {
+  kubelet-settings = templatefile("templates/kubelet/kubelet-settings.yaml.tftmpl", {
+    args-custom-cni         = file("templates/kubelet/service/args-custom-cni.env.tftmpl")
+    args-custom-runtime     = file("templates/kubelet/service/args-custom-runtime.env.tftmpl")
+    args-custom-auth        = file("templates/kubelet/service/args-custom-auth.env.tftmpl")
+    args-custom-configs     = file("templates/kubelet/service/args-custom-configs.env.tftmpl")
+    args-basic              = file("templates/kubelet/service/args-basic.env.tftmpl")
+    args-custom-kubeconfig  = file("templates/kubelet/service/args-custom-kubeconfig.env.tftmpl")
+    service-conf            = file("templates/kubelet/service/service.conf.tftmpl")
+  })
+  # test = templatefile("templates/kubelet/service/t.tftmpl", {
+  #   kubelet-settings = local.kubelet-settings
+  # })
+}
+
+# output "name" {
+#   value = local.test
+# }

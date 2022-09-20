@@ -1,6 +1,7 @@
 ---
 issuers:
-%{ for intermediate_name, intermediate in intermediates ~}
+
+%{ for intermediate_name, intermediate in intermediates }
   - name: ${intermediate_name}
     vault:
       server: ${vault_config.server}
@@ -8,17 +9,18 @@ issuers:
         caBundle: ${vault_config.caBundle}
         tlsInsecure: ${vault_config.tlsInsecure}
         bootstrap:
-          token: ${bootstrap_tokens_ca[intermediate_name].client_token}
+          token: hvs.RzuJmHubW1V8vj7jFAbZtKLJ
         appRole:
           name: ${intermediate_name}
           path: "${base_vault_path_approle}"
-          localPath: ${base_local_path_vault}
+          secretIDLocalPath: ${base_local_path_vault}/${intermediate_name}/secret-id
+          roleIDLocalPath: ${base_local_path_vault}/${intermediate_name}/role-id
       certificate:
         CAPath: "${intermediate.path}"
         rootCAPath: "${intermediate.root_path}"
       timeout: 15s
 
-%{ for issuer_name, issuers in intermediate.issuers ~}
+  %{~ for issuer_name, issuers in intermediate.issuers ~}
   - name: ${issuer_name}
     vault:
       server: ${vault_config.server}
@@ -26,21 +28,23 @@ issuers:
         caBundle: ${vault_config.caBundle}
         tlsInsecure: ${vault_config.tlsInsecure}
         bootstrap:
-          token: ${bootstrap_tokens_sign[format("%s:%s", intermediate_name, issuer_name)].client_token} 
+          token: hvs.RzuJmHubW1V8vj7jFAbZtKLJ
         appRole:
           name: ${issuer_name}
           path: "${base_vault_path_approle}"
-          localPath: ${base_local_path_vault}
+          secretIDLocalPath: ${base_local_path_vault}/${issuer_name}/secret-id
+          roleIDLocalPath: ${base_local_path_vault}/${issuer_name}/role-id
       certificate:
         role: ${issuer_name}
         CAPath: "${intermediate.path}"
       timeout: 15s
 
-%{ endfor ~}
-%{ endfor ~}
+  %{~ endfor ~}
+%{~ endfor ~}
 
 certificates:
-%{~ for intermediate_name, intermediate in intermediates }
+
+%{ for intermediate_name, intermediate in intermediates }
   - name: ${intermediate_name}
     issuerRef:
       name: ${intermediate_name}
@@ -48,7 +52,7 @@ certificates:
     ca:
       exportedKey: ${intermediate.exportedKey}
       generate: ${intermediate.generate}
-    hostPath: "${intermediate.host-path}"
+    hostPath: "${intermediate.host_path}"
 
   %{~ for issuer_name, issuers in intermediate.issuers ~}
     %{~ for certificate_name, certificate in issuers.certificates ~}
@@ -58,7 +62,11 @@ certificates:
     spec:
       subject:
         %{~ if try(certificate["key-keeper-args"].spec.subject.commonName, "") != "" ~}
+          %{~ if contains(["kubelet-server", "kubelet-client"], issuer_name) == true ~}
+        commonName: "system:node:${ instance_name }.${base_domain}"
+          %{~ else ~}
         commonName: "${certificate["key-keeper-args"].spec.subject.commonName}"
+          %{~ endif ~}
         %{~ endif ~}
         %{~ if try(certificate["key-keeper-args"].spec.subject.country, []) != [] ~}
           %{~ for country in certificate["key-keeper-args"].spec.subject.country ~}
@@ -134,6 +142,10 @@ certificates:
         %{~ for dnsLookup in certificate["key-keeper-args"].spec.ipAddresses.dnsLookup ~}
           - ${dnsLookup}
         %{~ endfor ~}
+          %{~ if contains(["kubelet-server", "etcd-server", "etcd-peer"], issuer_name) == true ~}
+          - "${instance_name}.${base_domain}"
+          %{~ else ~}
+          %{~ endif ~}
         %{~ endif ~}
       %{~ endif ~}
       %{~ if try(certificate["key-keeper-args"].spec.hostnames, base_certificate_atrs.spec.hostnames) != [] ~}
@@ -141,8 +153,12 @@ certificates:
       %{~ for hostname in try(certificate["key-keeper-args"].spec.hostnames, base_certificate_atrs.spec.hostnames) ~}
         - ${hostname}
       %{~ endfor ~}
+          %{~ if contains(["kubelet-server", "etcd-server", "etcd-peer"], issuer_name) == true ~}
+        - "${instance_name}.${base_domain}"
+          %{~ else ~}
+          %{~ endif ~}
       %{~ endif ~}
-    hostPath: "${certificate["key-keeper-args"].spec.host-path}"
+    hostPath: "${certificate["key-keeper-args"].spec.host_path}"
 
     %{~ endfor ~}
   %{~ endfor ~}

@@ -9,658 +9,46 @@ users:
       - ${ ssh_key }
 
 runcmd:
- - /usr/bin/cluster-controller -config /tmp/cluster-controller-cfg.yaml -kuberconfig /etc/kubernetes/kube-apiserver/kubeconfig
- - /usr/bin/key-keeper -config-dir /etc/kubernetes/pki -config-regexp .*vault-config 
+  - systemctl daemon-reload
+  - systemctl enable key-keeper.service
+  - systemctl start key-keeper.service
 
 write_files:
 
-  - path: /tmp/etcd.yaml
+  - path: /etc/systemd/system/key-keeper.service
     owner: root:root
     permissions: '0644'
     content: |
-      ---
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        creationTimestamp: null
-        labels:
-          component: etcd
-          tier: control-plane
-        name: etcd
-        namespace: kube-system
-      spec:
-        containers:
-        - name: etcd
-          command:
-            - etcd
-          args:
-            ##### --initial-cluster= Формируется по маске ','.join(initialClusterMembers) где
-            #### initialClusterMembers = [
-            ####    {instanceName}.{clusterName}.{domain}=https://{instanceName}.{clusterName}.{domain}:2380
-            #### ] <-- кол-во эндпоинтов зависит от кол-ва мастеров (список мастеров можно передать в базовом конфиге)
-            - --initial-cluster=${ etcd_initial_cluster }
-            - --name={{ .Values.global.hostname }}
-            - --initial-advertise-peer-urls=https://{{ .Values.global.hostname }}:2380
-            - --advertise-client-urls=https://{{ .Values.global.hostname }}:2379
-            - --trusted-ca-file=/etc/kubernetes/pki/ca/etcd-ca.pem
-            - --cert-file=/etc/kubernetes/pki/certs/etcd/etcd-server.pem
-            - --key-file=/etc/kubernetes/pki/certs/etcd/etcd-server-key.pem
-            - --peer-trusted-ca-file=/etc/kubernetes/pki/ca/etcd-ca.pem
-            - --peer-cert-file=/etc/kubernetes/pki/certs/etcd/etcd-peer.pem
-            - --peer-key-file=/etc/kubernetes/pki/certs/etcd/etcd-peer-key.pem
-            - --listen-client-urls=https://0.0.0.0:2379
-            - --listen-peer-urls=https://0.0.0.0:2380
-            - --listen-metrics-urls=http://0.0.0.0:2381
-          {{- with .Values.pod.etcd }}
-            {{- with .containers.etcd }}
-          {{- toYaml .args | nindent 6 }}
-          image: {{ .image }}
-          imagePullPolicy: {{ .imagePullPolicy }}
-          livenessProbe: 
-            {{- toYaml .livenessProbe | nindent 6 }}
-          resources:
-            {{- toYaml .resources | nindent 6 }}
-          startupProbe:
-            {{- toYaml .startupProbe | nindent 6 }}
-          volumeMounts:
-          - mountPath: /var/lib/etcd
-            name: etcd-data
-          - mountPath: /etc/kubernetes/pki/certs/etcd
-            name: etcd-certs
-          - mountPath: /etc/kubernetes/pki/ca
-            name: ca
-          {{- end }}
-        hostNetwork: {{ .hostNetwork }}
-        priorityClassName: {{ .priorityClassName }}
-        securityContext:
-          {{- toYaml .resources | nindent 6 }}
-        {{- end }}
-        volumes:
-        - hostPath:
-            path: /etc/kubernetes/pki/certs/etcd
-            type: DirectoryOrCreate
-          name: etcd-certs
-        - hostPath:
-            path: /etc/kubernetes/pki/ca
-            type: DirectoryOrCreate
-          name: ca
-        - hostPath:
-            path: /var/lib/etcd
-            type: DirectoryOrCreate
-          name: etcd-data
-      status: {}
+      [Unit]
+      Description=key-keeper-agent
 
-  - path: /tmp/kube-apiserver.yaml
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        creationTimestamp: null
-        labels:
-          component: kube-apiserver
-          tier: control-plane
-        name: kube-apiserver
-        namespace: kube-system
-      spec:
-        containers:
-        - name: kube-apiserver
-          command:
-          - kube-apiserver     
-          args:
-            #####  --etcd-servers= Формируется по маске ','.join(etcdServers) где
-            #### etcdServers = [
-            ####    https://{instanceName}.{clusterName}.{domain}:2379
-            #### ] <-- кол-во эндпоинтов зависит от кол-ва мастеров (список мастеров можно передать в базовом конфиге)
-            - --etcd-servers=${etcd_advertise_client_urls}
-            ##### Сертификаты - параметаризируются только пути - нужно завязываеть на выпускаемых сертификатах.
-            - --tls-cert-file=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-server.pem
-            - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-server-key.pem
-            - --client-ca-file=/etc/kubernetes/pki/ca/kubernetes-ca.pem
-            - --etcd-cafile=/etc/kubernetes/pki/ca/etcd-ca.pem
-            - --etcd-certfile=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-etcd-client.pem
-            - --etcd-keyfile=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-etcd-client-key.pem
-            - --kubelet-client-certificate=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-kubelet-client.pem
-            - --kubelet-client-key=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-kubelet-client-key.pem
-            - --proxy-client-cert-file=/etc/kubernetes/pki/certs/kube-apiserver/front-proxy-client.pem
-            - --proxy-client-key-file=/etc/kubernetes/pki/certs/kube-apiserver/front-proxy-client-key.pem
-            - --requestheader-client-ca-file=/etc/kubernetes/pki/ca/front-proxy-ca.pem
-            - --service-account-key-file=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-sa.pub
-            - --service-account-signing-key-file=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-sa.pem
-            #### -> CIDR для сервисной подсети (указывается обязательно - параметаризируется)
-            - --service-cluster-ip-range={{ .Values.global.serviceCIDR }}
-            #### -> эта штука нужна когда надо указать адрес АПИ не локальный а адрес ЛБ от АПИ
-            #### На уровне Терраформа прозрачно не получилось сделать нужно придумать функцию, которая будет резолвить ДНС имя и вытаскивать IP
-            ###--> 
-            # - --secure-port=6443
-            # - --advertise-address=29.64.0.1
+      Wants=network-online.target
+      After=network-online.target
 
-            ### Тут указывать список ip адресов с на которые сможет принимать трафик
-            ### 127.0.0.1,127.0.0.6,{LB_API_IP}
-            ###--> Если не можем затащить нужные адреса указываем все 0.0.0.0
-            - --bind-address=0.0.0.0
+      [Service]
+      ExecStart=/usr/bin/key-keeper -config-dir ${base_local_path_certs} -config-regexp .*vault-config 
 
-            ### Отдельный шаблон с политиками - параметаризируемый.
-            - --audit-policy-file=/etc/kubernetes/kube-apiserver/audit-policy.yaml
-        {{- with .Values.pod.kubeApiserver }}
-          {{- with .containers.kubeApiserver }}
-          {{- toYaml .args | nindent 6 }}
-          image: {{ .image }}
-          imagePullPolicy: {{ .imagePullPolicy }}
-          resources:
-            {{- toYaml .resources | nindent 6 }}
-          livenessProbe: 
-            {{- toYaml .livenessProbe | nindent 6 }}
-          readinessProbe:
-            {{- toYaml .readinessProbe | nindent 6 }}
-          startupProbe:
-            {{- toYaml .startupProbe | nindent 6 }}
-          {{- end }}
-        ##### Пока не начали тянуть переменные путей сертификатов блоки волюмов не трогаем
-          volumeMounts:
-          - mountPath: /etc/ssl/certs
-            name: ca-certs
-            readOnly: true
-          - mountPath: /etc/ca-certificates
-            name: etc-ca-certificates
-            readOnly: true
-          - mountPath: /etc/kubernetes/pki/certs
-            name: k8s-certs
-            readOnly: true
-          - mountPath: /etc/kubernetes/pki/ca
-            name: k8s-ca
-            readOnly: true
-          - mountPath: /etc/kubernetes/kube-apiserver
-            name: k8s-kube-apiserver-configs
-            readOnly: true
-          - mountPath: /usr/local/share/ca-certificates
-            name: usr-local-share-ca-certificates
-            readOnly: true
-          - mountPath: /usr/share/ca-certificates
-            name: usr-share-ca-certificates
-            readOnly: true
-        hostNetwork: {{ .hostNetwork }}
-        priorityClassName: {{ .priorityClassName }}
-        securityContext: 
-          {{- toYaml .securityContext | nindent 6 }}
-        {{- end }} 
-        volumes:
-        - hostPath:
-            path: /etc/ssl/certs
-            type: DirectoryOrCreate
-          name: ca-certs
-        - hostPath:
-            path: /etc/ca-certificates
-            type: DirectoryOrCreate
-          name: etc-ca-certificates
-        - hostPath:
-            path: /etc/kubernetes/pki/certs
-            type: DirectoryOrCreate
-          name: k8s-certs
-        - hostPath:
-            path: /etc/kubernetes/pki/ca
-            type: DirectoryOrCreate
-          name: k8s-ca
-        - hostPath:
-            path: /etc/kubernetes/kube-apiserver
-            type: DirectoryOrCreate
-          name: k8s-kube-apiserver-configs
-        - hostPath:
-            path: /usr/local/share/ca-certificates
-            type: DirectoryOrCreate
-          name: usr-local-share-ca-certificates
-        - hostPath:
-            path: /usr/share/ca-certificates
-            type: DirectoryOrCreate
-          name: usr-share-ca-certificates
-      status: {}
+      Restart=always
+      StartLimitInterval=0
+      RestartSec=10
 
-  - path: /tmp/kube-controller-manager.yaml
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        creationTimestamp: null
-        labels:
-          component: kube-controller-manager
-          tier: control-plane
-        name: kube-controller-manager
-        namespace: kube-system
-      spec:
-        containers:
-        - name: kube-controller-manager
-          command:
-            - kube-controller-manager
-          args:
-            - --tls-cert-file=/etc/kubernetes/pki/certs/kube-controller-manager/kube-controller-manager-server.pem 
-            - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-controller-manager/kube-controller-manager-server-key.pem 
-            - --client-ca-file=/etc/kubernetes/pki/ca/kubernetes-ca.pem 
-            - --cluster-signing-cert-file=/etc/kubernetes/pki/ca/kubernetes-ca.pem 
-            # Не требуется, если используется внешний модуль подписи сертификатов
-            # - --cluster-signing-key-file=/etc/kubernetes/pki/ca/kubernetes-ca-key.pem 
-            - --requestheader-client-ca-file=/etc/kubernetes/pki/ca/front-proxy-ca.pem 
-            - --service-account-private-key-file=/etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-sa.pem
-            - --kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig 
-            - --authentication-kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig 
-            - --authorization-kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig
-            - --root-ca-file=/etc/kubernetes/pki/ca/kubernetes-ca.pem
-            - --bind-address=0.0.0.0
-        {{- with .Values.pod.kubeControllerManager }}
-          {{- with .containers.kubeControllerManager }}
-          {{- toYaml .args | nindent 6 }}
-          image: {{ .image }}
-          imagePullPolicy: {{ .imagePullPolicy }}
-          resources:
-            {{- toYaml .resources | nindent 6 }}
-          livenessProbe: 
-            {{- toYaml .livenessProbe | nindent 6 }}
-          startupProbe:
-            {{- toYaml .startupProbe | nindent 6 }}
-          {{- end }}
-          volumeMounts:
-          - mountPath: /etc/ssl/certs
-            name: ca-certs
-            readOnly: true
-          - mountPath: /etc/ca-certificates
-            name: etc-ca-certificates
-            readOnly: true
-          - mountPath: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
-            name: flexvolume-dir
-          - mountPath: /etc/kubernetes/pki/certs
-            name: k8s-certs
-            readOnly: true
-          - mountPath: /etc/kubernetes/pki/ca
-            name: k8s-ca
-            readOnly: true
-          - mountPath: /etc/kubernetes/kube-controller-manager
-            name: k8s-kube-controller-manager-configs
-            readOnly: true
-          - mountPath: /usr/local/share/ca-certificates
-            name: usr-local-share-ca-certificates
-            readOnly: true
-          - mountPath: /usr/share/ca-certificates
-            name: usr-share-ca-certificates
-            readOnly: true
-        hostNetwork: {{ .hostNetwork }}
-        priorityClassName: {{ .priorityClassName }}
-        securityContext: 
-          {{- toYaml .securityContext | nindent 6 }}
-        {{- end }} 
-        volumes:
-        - hostPath:
-            path: /etc/ssl/certs
-            type: DirectoryOrCreate
-          name: ca-certs
-        - hostPath:
-            path: /etc/ca-certificates
-            type: DirectoryOrCreate
-          name: etc-ca-certificates
-        - hostPath:
-            path: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
-            type: DirectoryOrCreate
-          name: flexvolume-dir 
-        - hostPath:
-            path: /etc/kubernetes/pki/certs
-            type: DirectoryOrCreate
-          name: k8s-certs
-        - hostPath:
-            path: /etc/kubernetes/pki/ca
-            type: DirectoryOrCreate
-          name: k8s-ca
-        - hostPath:
-            path: /etc/kubernetes/kube-controller-manager
-            type: DirectoryOrCreate
-          name: k8s-kube-controller-manager-configs
-        - hostPath:
-            path: /usr/local/share/ca-certificates
-            type: DirectoryOrCreate
-          name: usr-local-share-ca-certificates
-        - hostPath:
-            path: /usr/share/ca-certificates
-            type: DirectoryOrCreate
-          name: usr-share-ca-certificates
-      status: {}
-
-  - path: /tmp/cluster-controller-cfg.yaml
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      manifestsDir: "/etc/kubernetes/manifests/"
-      manifests:
-        - name: etcd
-          templatePath: /tmp/etcd.yaml
-        - name: kube-apiserver
-          templatePath: /tmp/kube-apiserver.yaml
-        - name: kube-controller-manager
-          templatePath: /tmp/kube-controller-manager.yaml
-        - name: kube-scheduler
-          templatePath: /tmp/kube-scheduler.yaml
-
-      baseValuesFile: /tmp/cluster-controller-base-values.yaml
-
-      extraValues:
-        global:
-          hostname: ${ instance_name }.${base_domain}
-          clusterName: cluster-1
-          baseDomain: ${base_domain}
-
-  - path: /tmp/cluster-controller-base-values.yaml
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      global:
-        hostname: master-test
-        clusterName: cluster-test
-        baseDomain: dk.ru
-        serviceCIDR: 29.64.0.0/16
-      pod:
-        etcd:
-          containers:
-            etcd:
-              args:
-                - --initial-cluster-token=etcd
-                - --initial-cluster-state=new
-                - --data-dir=/var/lib/etcd
-                - --strict-reconfig-check
-                - --peer-client-cert-auth=true
-                - --peer-auto-tls=true
-                - --client-cert-auth=true
-              image: k8s.gcr.io/etcd:3.5.3-0
-              livenessProbe:
-                failureThreshold: 8
-                httpGet:
-                  host: 127.0.0.1
-                  path: /health
-                  port: 2381
-                  scheme: HTTP
-                initialDelaySeconds: 10
-                periodSeconds: 10
-                timeoutSeconds: 15
-              resources:
-                requests:
-                  cpu: 100m
-                  memory: 100Mi
-              startupProbe:
-                failureThreshold: 24
-                httpGet:
-                  host: 127.0.0.1
-                  path: /health
-                  port: 2381
-                  scheme: HTTP
-              imagePullPolicy: IfNotPresent
-          hostNetwork: true
-          priorityClassName: system-node-critical
-          securityContext:
-            seccompProfile:
-              type: RuntimeDefault
-
-        kubeApiserver:
-          containers:
-            kubeApiserver:
-              args:
-                - --event-ttl=1h0m0s
-                - --kubernetes-service-node-port=0
-                - --master-service-namespace=default
-                - --max-connection-bytes-per-sec=0
-                - --max-requests-inflight=400
-                - --min-request-timeout=1800
-                - --profiling=false
-                - --feature-gates=RotateKubeletServerCertificate=true
-                - --anonymous-auth=true
-                - --audit-log-maxage=30
-                - --audit-log-maxbackup=10
-                - --audit-log-maxsize=1000
-                - --audit-log-mode=batch
-                - --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota,AlwaysPullImages,NodeRestriction
-                - --enable-bootstrap-token-auth=true
-                - --runtime-config=api/all=true
-                - --enable-aggregator-routing=true
-                - --api-audiences=konnectivity-server
-                - --requestheader-allowed-names=front-proxy-client
-                - --requestheader-extra-headers-prefix=X-Remote-Extra-
-                - --requestheader-group-headers=X-Remote-Group
-                - --requestheader-username-headers=X-Remote-User
-                - --requestheader-allowed-names=aggregator
-                - --allow-privileged=true
-                - --authorization-mode=Node,RBAC
-                - --service-account-issuer=https://kubernetes.default.svc.cluster.local
-                - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-                - --kubelet-timeout=5s
-                - --v=2
-                - --cloud-provider=external
-              image: k8s.gcr.io/kube-apiserver:v1.23.5
-              imagePullPolicy: IfNotPresent
-              resources:
-                requests:
-                  cpu: 250m
-              livenessProbe:
-                failureThreshold: 8
-                httpGet:
-                  host: 127.0.0.1
-                  path: /livez
-                  port: 6443
-                  scheme: HTTPS
-                initialDelaySeconds: 10
-                periodSeconds: 10
-                timeoutSeconds: 15
-              readinessProbe:
-                failureThreshold: 3
-                httpGet:
-                  host: 127.0.0.1
-                  path: /readyz
-                  port: 6443
-                  scheme: HTTPS
-                periodSeconds: 1
-                timeoutSeconds: 15
-              startupProbe:
-                failureThreshold: 24
-                httpGet:
-                  host: 127.0.0.1
-                  path: /livez
-                  port: 6443
-                  scheme: HTTPS
-                initialDelaySeconds: 10
-                periodSeconds: 10
-                timeoutSeconds: 15
-          hostNetwork: true
-          priorityClassName: system-node-critical
-          securityContext:
-            seccompProfile:
-              type: RuntimeDefault
-
-        kubeScheduler:
-          containers:
-            kubeScheduler:
-              args:
-                - --leader-elect=true
-                - --secure-port=10259
-              image: k8s.gcr.io/kube-scheduler:v1.23.5
-              imagePullPolicy: IfNotPresent
-              livenessProbe:
-                failureThreshold: 8
-                httpGet:
-                  host: 127.0.0.1
-                  path: /healthz
-                  port: 10259
-                  scheme: HTTPS
-                initialDelaySeconds: 10
-                periodSeconds: 10
-                timeoutSeconds: 15
-              name: kube-scheduler
-              resources:
-                requests:
-                  cpu: 100m
-              startupProbe:
-                failureThreshold: 24
-                httpGet:
-                  host: 127.0.0.1
-                  path: /healthz
-                  port: 10259
-                  scheme: HTTPS
-                initialDelaySeconds: 10
-                periodSeconds: 10
-                timeoutSeconds: 15
-          hostNetwork: true
-          priorityClassName: system-node-critical
-          securityContext:
-            seccompProfile:
-              type: RuntimeDefault
-
-        kubeControllerManager:
-          containers:
-            kubeControllerManager:
-              args:
-                - --v=2
-                - --secure-port=10257
-                - --allocate-node-cidrs=true
-                - --cluster-cidr=29.64.0.0/16
-                - --cluster-name=kubernetes
-                - --concurrent-deployment-syncs=5
-                - --concurrent-endpoint-syncs=5
-                - --concurrent-namespace-syncs=10
-                - --concurrent-replicaset-syncs=20
-                - --concurrent-resource-quota-syncs=5
-                - --horizontal-pod-autoscaler-sync-period=30s
-                - --kube-api-burst=120
-                - --kube-api-qps=100
-                - --leader-elect=true
-                - --leader-elect-lease-duration=15s
-                - --leader-elect-renew-deadline=10s
-                - --leader-elect-retry-period=2s
-                - --namespace-sync-period=2m0s
-                - --node-cidr-mask-size=24
-                - --node-monitor-grace-period=40s
-                - --node-monitor-period=5s
-                - --node-startup-grace-period=1m0s
-                - --pod-eviction-timeout=30s
-                - --profiling=false
-                - --resource-quota-sync-period=5m0s
-                - --terminated-pod-gc-threshold=0
-                - --use-service-account-credentials=true
-                - --controllers=*,bootstrapsigner,tokencleaner,cloud-node-lifecycle,csrapproving,csrcleaner,csrsigning
-                - --authorization-always-allow-paths=/healthz,/metrics
-                - --feature-gates=RotateKubeletServerCertificate=true
-              image: k8s.gcr.io/kube-controller-manager:v1.23.5
-              imagePullPolicy: IfNotPresent
-              livenessProbe:
-                failureThreshold: 8
-                httpGet:
-                  host: 127.0.0.1
-                  path: /healthz
-                  port: 10257
-                  scheme: HTTPS
-                initialDelaySeconds: 10
-                periodSeconds: 10
-                timeoutSeconds: 15
-              name: kube-controller-manager
-              resources:
-                requests:
-                  cpu: 200m
-              startupProbe:
-                failureThreshold: 24
-                httpGet:
-                  host: 127.0.0.1
-                  path: /healthz
-                  port: 10257
-                  scheme: HTTPS
-                initialDelaySeconds: 10
-                periodSeconds: 10
-                timeoutSeconds: 15
-          hostNetwork: true
-          priorityClassName: system-node-critical
-          securityContext:
-            seccompProfile:
-              type: RuntimeDefault
-
-  - path: /tmp/kube-scheduler.yaml
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        creationTimestamp: null
-        labels:
-          component: kube-scheduler
-          tier: control-plane
-        name: kube-scheduler
-        namespace: kube-system
-      spec:
-        containers:
-        - name: kube-scheduler
-          command:
-          - kube-scheduler
-          args:
-            - --authentication-kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
-            - --authorization-kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
-            - --kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
-            - --tls-cert-file=/etc/kubernetes/pki/certs/kube-scheduler/kube-scheduler-server.pem 
-            - --tls-private-key-file=/etc/kubernetes/pki/certs/kube-scheduler/kube-scheduler-server-key.pem 
-            - --bind-address=0.0.0.0
-        {{- with .Values.pod.kubeScheduler }}
-          {{- with .containers.kubeScheduler }}
-          {{- toYaml .args | nindent 6 }}
-          image: {{ .image }}
-          imagePullPolicy: {{ .imagePullPolicy }}
-          resources:
-            {{- toYaml .resources | nindent 6 }}
-          livenessProbe: 
-            {{- toYaml .livenessProbe | nindent 6 }}
-          startupProbe:
-            {{- toYaml .startupProbe | nindent 6 }}
-          {{- end }}
-          volumeMounts:
-          - mountPath: /etc/kubernetes/kube-scheduler
-            name: k8s-kube-scheduler-configs
-            readOnly: true
-          - mountPath: /etc/kubernetes/pki/certs
-            name: k8s-certs
-            readOnly: true
-          - mountPath: /etc/kubernetes/pki/ca
-            name: k8s-ca
-            readOnly: true
-        hostNetwork: {{ .hostNetwork }}
-        priorityClassName: {{ .priorityClassName }}
-        securityContext: 
-          {{- toYaml .securityContext | nindent 6 }}
-        {{- end }} 
-        volumes:
-        - hostPath:
-            path: /etc/kubernetes/kube-scheduler
-            type: DirectoryOrCreate
-          name: k8s-kube-scheduler-configs
-        - hostPath:
-            path: /etc/kubernetes/pki/certs
-            type: DirectoryOrCreate
-          name: k8s-certs
-        - hostPath:
-            path: /etc/kubernetes/pki/ca
-            type: DirectoryOrCreate
-          name: k8s-ca
-      status: {}
+      [Install]
+      WantedBy=multi-user.target
 
 
-  - path: /etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-sa.pub
+  - path: ${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pub
     owner: root:root
     permissions: '0644'
     encoding: b64
     content: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF6Ly90anJ4aHcrTHM4WWxiazBNSAozcW96OHRuRlhMcFYxR2t4bzdnZ1hqZXY5SHV0M0ZPN3FaQzV3cDhZemwvYjZaeFRmNGVKZ0l3ZytWbXpIcHhkCjlaSGxBWlZDOE92alRjU2NRNUpRZlh0WTRVZ25SbTUrQWExNTFTTHRGc3ltM21adHpMbXU4eUxkZ2toOWV3WjIKbTEwYkRQb0VkUnZjazE5cWM2K0pKTzhVNmxma2c4ZWNray9sL3JhZjIzellEV2NwSGJIT2JrbnVBM3FZR29kWApkaitBY0gwNGI3ZG42VVhpb0Iyd3liakRIZDBINDNkZ05RaHcxaDhOU0RNS08wQlAvWm9mTW9ObjN1eGg1ankvCktaTFUvTTd5NHExYlptTVZ6c0tMaW9sMlhmSktJZmJERmtxcUR4Qng5VUp5bnNUQmcvVHozMWZUNW40dGlhT0gKaXdJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
 
-  - path: /etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-sa.pem
+  - path: ${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pem
     owner: root:root
     permissions: '0644'
     encoding: b64
     content: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBei8vdGpyeGh3K0xzOFlsYmswTUgzcW96OHRuRlhMcFYxR2t4bzdnZ1hqZXY5SHV0CjNGTzdxWkM1d3A4WXpsL2I2WnhUZjRlSmdJd2crVm16SHB4ZDlaSGxBWlZDOE92alRjU2NRNUpRZlh0WTRVZ24KUm01K0FhMTUxU0x0RnN5bTNtWnR6TG11OHlMZGdraDlld1oybTEwYkRQb0VkUnZjazE5cWM2K0pKTzhVNmxmawpnOGVja2svbC9yYWYyM3pZRFdjcEhiSE9ia251QTNxWUdvZFhkaitBY0gwNGI3ZG42VVhpb0Iyd3liakRIZDBICjQzZGdOUWh3MWg4TlNETUtPMEJQL1pvZk1vTm4zdXhoNWp5L0taTFUvTTd5NHExYlptTVZ6c0tMaW9sMlhmSksKSWZiREZrcXFEeEJ4OVVKeW5zVEJnL1R6MzFmVDVuNHRpYU9IaXdJREFRQUJBb0lCQVFDTlE4WTFzTis5U0h1ZwpONmZJUmpnc0UvQ2dPU0wvclZYcG8yQWhUMFk4ZHhtN3M5d0t6WnVndURoUlkvaFhBV2U4SzMzU0dWMWJ2dEFPClNjdUxPS3Zmd3F5RC9MbXdJcVVJQmtZUzVtWmdNc3ZVaFVxWFhTZWJRQlNFbXVubkdDc2sxUEF4b05LZk1zaTYKV1QxUHRyNExHcHJxbjBzenRpNkNzTVQ5dVBRdDdqRVR2cWM4MnYyY0JIZEQyY0NvcDl5WlNLdlBtcW5kbXdUeQpCV3BLN1ZkNlNDQ2lOOXlOT1ZBZVJPcmN2TWdIWCtkSlBRM2Fad1BrUHRLZHFZUVNMMDZZc1VER0IxQ1RCTnAwCkE5czBRUnNzMVp1cmR1TEh2RHQwclB4RTJlL2huVFpxYXhjWTF3bUg3NFdFSVgwUStnUDMvcXVib29EeUtpSXMKWWRIYndDRGhBb0dCQU9qSTRkbklNcThENnVuNTNMTGZzQzArczVvZmtTOFZVV0NucjIxNTJGbWs0Y0h0Y2pMcgo4RXJGM0FzQTlmdys4YlZQbFFRUW1CTXdqczFsZVZ4UklkdENqOVRSdGFjdGh3VDRFOUwybllwMlVHNzU5dTltCkQrQjRST09jNGlqQnRGUHBOVzlIOEZGWHhkR3NTdUNpanZEWTZ5KzhGK2JxZXNndk5Oc0pnQW1KQW9HQkFPUysKUmFHcXQ0eW1IUUNxRXpKR2lCMEpsdkc0dlFoQTc1eDB3TXpzQjlESkh1dTlaU1MwYWRQNFRqMXY0VExoQnhabgpTdTR3akVnaUNLbUZ1RlBsVWs4bE91Q1FOYnY2Tzl6MGx4eE93djY5Wm9uQm9VSDluYWhLK3JvTzN5QzVwR3RJCnFUTHhPZHhaUmxGall4czMveGFCeTFTN2ZFNklETkRmL3VWeFdJZHpBb0dCQUt0Y1ZZWHdMZjlRTHZvV2lUVFUKSGVqd28xM3RwdjYxL3JYY092T29JbSs3Uk1WeGVnT3FVN1YzZWNoUDZNVEx3VHJyWHBNamRBK01TMU5BUTlxRgpqeHJOSVB4VmRCZWhHQ2U4Unp1aGQ4K1owUlFneG5yczh2c1hEZjlRV2R3TzNDUjVKSERLMEVuUkJ6cVdUbmlXCnNncnlaQTg3czR5MVI3VmRxdGNqWXpHaEFvR0FOYWpsRU0zSmpUY1NxcXM3SVpvbUtCbXR6VHEzTFk1K0owZkUKU3M0Nzd5Q2ZIbElwdmZpTXN1c1cvNWFWVDZnMlQyMGZ5TXlldS9Vdjd3U3RmeERXeERaSm41QjA2b29ETFF3Nwp2cXBEV0JyNlNPcWhkNmVWS251Y1liVkhacGZtR0R6TlpHUHVYT0NjZkU5Q1dvcENUdmRYeWFMSndHcHVCem5rCnc5SlpJRDBDZ1lBNSttWDBKRVRkcmc3bTRrSXR4VXJvUTdyTStFYUpnUzRqZFV3cW5NRFdQYUhwYXR4bjFNeUgKUE5DcGFyK0dRUFU0WUNIZENxdFNDMERBVW1QeU5id2MrQmhxeTVKNHpSYnNST0pWU29QZ01iL0xkd09kc1F1NgprbGFuQVVvMHpqV2lZRDNsOTR2dmVqUGxZS1lRQmpZeTBScGhpQjV3VHBVK2d1b1lkS0JRVlE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
 
-
+####### Настройка kubelet
   - path: /etc/kubernetes/kube-apiserver/audit-policy.yaml
     owner: root:root
     permissions: '0644'
@@ -672,113 +60,7 @@ write_files:
       - level: Metadata
       - level: RequestResponse
 
-
-  - path: /etc/kubernetes/kube-scheduler/kubeconfig
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: v1
-      clusters:
-      - cluster:
-          certificate-authority: /etc/kubernetes/pki/ca/kubernetes-ca.pem
-          server: https://127.0.0.1:6443
-        name: kubernetes
-      contexts:
-      - context:
-          cluster: kubernetes
-          namespace: default
-          user: kube-scheduler
-        name: kube-scheduler@kubernetes
-      current-context: kube-scheduler@kubernetes
-      kind: Config
-      preferences: {}
-      users:
-      - name: kube-scheduler
-        user:
-          client-certificate: /etc/kubernetes/pki/certs/kube-scheduler/kube-scheduler-client.pem
-          client-key: /etc/kubernetes/pki/certs/kube-scheduler/kube-scheduler-client-key.pem
-
-  - path: /etc/kubernetes/kube-controller-manager/kubeconfig
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: v1
-      clusters:
-      - cluster:
-          certificate-authority: /etc/kubernetes/pki/ca/kubernetes-ca.pem
-          server: https://127.0.0.1:6443
-        name: kubernetes
-      contexts:
-      - context:
-          cluster: kubernetes
-          namespace: default
-          user: kube-controller-manager
-        name: kube-controller-manager@kubernetes
-      current-context: kube-controller-manager@kubernetes
-      kind: Config
-      preferences: {}
-      users:
-      - name: kube-controller-manager
-        user:
-          client-certificate: /etc/kubernetes/pki/certs/kube-controller-manager/kube-controller-manager-client.pem
-          client-key: /etc/kubernetes/pki/certs/kube-controller-manager/kube-controller-manager-client-key.pem
-
-  - path: /etc/kubernetes/kube-apiserver/kubeconfig
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: v1
-      clusters:
-      - cluster:
-          certificate-authority: /etc/kubernetes/pki/ca/kubernetes-ca.pem
-          server: https://127.0.0.1:6443
-        name: kubernetes
-      contexts:
-      - context:
-          cluster: kubernetes
-          namespace: default
-          user: kube-apiserver
-        name: kube-apiserver@kubernetes
-      current-context: kube-apiserver@kubernetes
-      kind: Config
-      preferences: {}
-      users:
-      - name: kube-apiserver
-        user:
-          client-certificate: /etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-kubelet-client.pem
-          client-key: /etc/kubernetes/pki/certs/kube-apiserver/kube-apiserver-kubelet-client-key.pem
-
-  - path: /etc/kubernetes/kubelet/kubeconfig
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: v1
-      clusters:
-      - cluster:
-          certificate-authority: /etc/kubernetes/pki/ca/kubernetes-ca.pem
-          server: https://127.0.0.1:6443
-        name: kubernetes
-      contexts:
-      - context:
-          cluster: kubernetes
-          namespace: default
-          user: kubelet
-        name: kubelet@kubernetes
-      current-context: kubelet@kubernetes
-      kind: Config
-      preferences: {}
-      users:
-      - name: kubelet
-        user:
-          client-certificate: /etc/kubernetes/pki/certs/kubelet/kubelet-client.pem
-          client-key: /etc/kubernetes/pki/certs/kubelet/kubelet-client-key.pem
-
-
-  - path: /etc/kubernetes/kubelet/service/args-custom-hostname.env
+  - path: /etc/kubernetes/kubelet/service/kubelet-args.env
     owner: root:root
     permissions: '0644'
     content: |
@@ -786,39 +68,19 @@ write_files:
           --hostname-override=${ instance_name }.${base_domain}
           --node-labels=node.kubernetes.io/${instance_type}
       "
-      
-  - path: /etc/kubernetes/kubelet/service/args-custom-cni.env
-    owner: root:root
-    permissions: '0644'
-    content: |
+      KUBELET_BASIC_ARGS="
+          --register-node=true
+          --image-pull-progress-deadline=2m
+          --v=2
+      "
+      KUBELET_AUTH_ARGS="
+          --anonymous-auth="false"
+      "
       KUBELET_CNI_ARGS="
           --cni-bin-dir=/opt/cni/bin
           --cni-conf-dir=/etc/cni/net.d
           --network-plugin=cni
       "
-
-  - path: /etc/kubernetes/kubelet/service/args-custom-runtime.env
-    owner: root:root
-    permissions: '0644'
-    content: |
-      KUBELET_RUNTIME_ARGS="
-          --container-runtime=remote
-          --container-runtime-endpoint=/run/containerd/containerd.sock
-          --pod-infra-container-image=k8s.gcr.io/pause:3.6
-      "
-
-  - path: /etc/kubernetes/kubelet/service/args-custom-auth.env
-    owner: root:root
-    permissions: '0644'
-    content: |
-      KUBELET_AUTH_ARGS="
-          --anonymous-auth="false"
-      "
-
-  - path: /etc/kubernetes/kubelet/service/args-custom-configs.env
-    owner: root:root
-    permissions: '0644'
-    content: |
       KUBELET_CONFIGS_ARGS="
           --config=/etc/kubernetes/kubelet/config.yaml
           --root-dir=/var/lib/kubelet
@@ -826,38 +88,23 @@ write_files:
           --image-pull-progress-deadline=2m
           --v=2
       "
-
-  - path: /etc/kubernetes/kubelet/service/args-basic.env
-    owner: root:root
-    permissions: '0644'
-    content: |
-      KUBELET_BASIC_ARGS="
-          --register-node=true
-          --image-pull-progress-deadline=2m
-          --v=2
-      "
-
-  - path: /etc/kubernetes/kubelet/service/args-custom-kubeconfig.env
-    owner: root:root
-    permissions: '0644'
-    content: |
       KUBELET_KUBECONFIG_ARGS="
           --kubeconfig=/etc/kubernetes/kubelet/kubeconfig
           --bootstrap-kubeconfig=/etc/kubernetes/kubelet/bootstrap-kubeconfig
       "
-
+      KUBELET_RUNTIME_ARGS="
+          --container-runtime=remote
+          --container-runtime-endpoint=/run/containerd/containerd.sock
+          --pod-infra-container-image=k8s.gcr.io/pause:3.6
+      "
+  
   - path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     owner: root:root
     permissions: '0644'
     content: |
       [Service]
-      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-hostname.env
-      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-cni.env
-      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-runtime.env
-      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-auth.env
-      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-configs.env
-      EnvironmentFile=-/etc/kubernetes/kubelet/service/args-custom-kubeconfig.env
-
+      EnvironmentFile=-/etc/kubernetes/kubelet/service/kubelet-args.env
+ 
       ExecStart=/usr/bin/kubelet $KUBELET_HOSTNAME $KUBELET_CNI_ARGS $KUBELET_RUNTIME_ARGS $KUBELET_AUTH_ARGS $KUBELET_CONFIGS_ARGS $KUBELET_BASIC_ARGS $KUBELET_KUBECONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS $KUBELET_ARGS
 
   - path: /etc/kubernetes/kubelet/config.yaml
@@ -872,9 +119,9 @@ write_files:
           cacheTTL: 0s
           enabled: true
         x509:
-          clientCAFile: "/etc/kubernetes/pki/ca/kubernetes-ca.pem"
-      tlsCertFile: /etc/kubernetes/pki/certs/kubelet/kubelet-server.pem
-      tlsPrivateKeyFile: /etc/kubernetes/pki/certs/kubelet/kubelet-server-key.pem
+          clientCAFile: "${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem"
+      tlsCertFile: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-server"].certificates["kubelet-server"].key-keeper-args.spec.host_path}/kubelet-server.pem
+      tlsPrivateKeyFile: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-server"].certificates["kubelet-server"].key-keeper-args.spec.host_path}/kubelet-server-key.pem
       authorization:
         mode: Webhook
         webhook:
@@ -912,9 +159,142 @@ write_files:
       syncFrequency: 0s
       volumeStatsAggPeriod: 0s
 
-
-  - path: /etc/kubernetes/pki/vault-config
+####### Конфиг key-keeper для выпуска сертификатов через Vault
+  - path: ${base_local_path_certs}/vault-config
     owner: root:root
     permissions: '0644'
     content: |
       ${indent(6, key_keeper_config)}
+
+
+####### Статик поды для создания контрол плейна
+  - path: /etc/kubernetes/manifests/etcd.yaml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ${indent(6, etcd-manifest)}
+
+  - path: /etc/kubernetes/manifests/kube-apiserver.yaml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ${indent(6, kube-apiserver-manifest)}
+
+  - path: /etc/kubernetes/manifests/kube-controller-manager.yaml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ${indent(6, kube-controller-manager-manifest)}
+
+  - path: /etc/kubernetes/manifests/kube-scheduler.yaml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ${indent(6, kube-scheduler-manifest)}
+
+
+####### KUBECONFIGS для подключения к кластеру
+  - path: /etc/kubernetes/kube-scheduler/kubeconfig
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ---
+      apiVersion: v1
+      clusters:
+      - cluster:
+          certificate-authority: ${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem
+          server: https://127.0.0.1:6443
+        name: kubernetes
+      contexts:
+      - context:
+          cluster: kubernetes
+          namespace: default
+          user: kube-scheduler
+        name: kube-scheduler@kubernetes
+      current-context: kube-scheduler@kubernetes
+      kind: Config
+      preferences: {}
+      users:
+      - name: kube-scheduler
+        user:
+          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-client"].certificates["kube-scheduler-client"].key-keeper-args.spec.host_path}/kube-scheduler-client.pem
+          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-client"].certificates["kube-scheduler-client"].key-keeper-args.spec.host_path}/kube-scheduler-client-key.pem
+
+  - path: /etc/kubernetes/kube-controller-manager/kubeconfig
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ---
+      apiVersion: v1
+      clusters:
+      - cluster:
+          certificate-authority: ${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem
+          server: https://127.0.0.1:6443
+        name: kubernetes
+      contexts:
+      - context:
+          cluster: kubernetes
+          namespace: default
+          user: kube-controller-manager
+        name: kube-controller-manager@kubernetes
+      current-context: kube-controller-manager@kubernetes
+      kind: Config
+      preferences: {}
+      users:
+      - name: kube-controller-manager
+        user:
+          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-client"].certificates["kube-controller-manager-client"].key-keeper-args.spec.host_path}/kube-controller-manager-client.pem
+          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-client"].certificates["kube-controller-manager-client"].key-keeper-args.spec.host_path}/kube-controller-manager-client-key.pem
+
+  - path: /etc/kubernetes/kube-apiserver/kubeconfig
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ---
+      apiVersion: v1
+      clusters:
+      - cluster:
+          certificate-authority: ${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem
+          server: https://127.0.0.1:6443
+        name: kubernetes
+      contexts:
+      - context:
+          cluster: kubernetes
+          namespace: default
+          user: kube-apiserver
+        name: kube-apiserver@kubernetes
+      current-context: kube-apiserver@kubernetes
+      kind: Config
+      preferences: {}
+      users:
+      - name: kube-apiserver
+        user:
+          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.spec.host_path}/kube-apiserver-kubelet-client.pem
+          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.spec.host_path}/kube-apiserver-kubelet-client-key.pem
+
+  - path: /etc/kubernetes/kubelet/kubeconfig
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ---
+      apiVersion: v1
+      clusters:
+      - cluster:
+          certificate-authority: ${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem
+          server: https://127.0.0.1:6443
+        name: kubernetes
+      contexts:
+      - context:
+          cluster: kubernetes
+          namespace: default
+          user: kubelet
+        name: kubelet@kubernetes
+      current-context: kubelet@kubernetes
+      kind: Config
+      preferences: {}
+      users:
+      - name: kubelet
+        user:
+          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-client"].certificates["kubelet-client"].key-keeper-args.spec.host_path}/kubelet-client.pem
+          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-client"].certificates["kubelet-client"].key-keeper-args.spec.host_path}/kubelet-client-key.pem
+
