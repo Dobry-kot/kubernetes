@@ -1,6 +1,10 @@
 
-path "auth/clusters/${cluster_name}/approle/role/${approle_name}/*" {
-    capabilities = ["read"]
+path "auth/clusters/${cluster_name}/approle/role/${approle_name}/role-id" {
+  capabilities = [ "read" ]
+}
+
+path "auth/clusters/${cluster_name}/approle/role/${approle_name}/secret-id" {
+  capabilities = [ "update" ]
 }
 
 path "clusters/${cluster_name}/kv/data/kube-apiserver-sa" {
