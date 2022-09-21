@@ -9,7 +9,7 @@ issuers:
         caBundle: ${vault_config.caBundle}
         tlsInsecure: ${vault_config.tlsInsecure}
         bootstrap:
-          token: hvs.RzuJmHubW1V8vj7jFAbZtKLJ
+          token: ${bootstrap_tokens_ca[intermediate_name].client_token}
         appRole:
           name: ${intermediate_name}
           path: "${base_vault_path_approle}"
@@ -28,7 +28,7 @@ issuers:
         caBundle: ${vault_config.caBundle}
         tlsInsecure: ${vault_config.tlsInsecure}
         bootstrap:
-          token: hvs.RzuJmHubW1V8vj7jFAbZtKLJ
+          token: ${bootstrap_tokens_sign[format("%s:%s", intermediate_name, issuer_name)].client_token}
         appRole:
           name: ${issuer_name}
           path: "${base_vault_path_approle}"

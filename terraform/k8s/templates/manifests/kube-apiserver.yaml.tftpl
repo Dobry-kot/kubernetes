@@ -14,12 +14,7 @@ spec:
     command:
     - kube-apiserver     
     args:
-      #####  --etcd-servers= Формируется по маске ','.join(etcdServers) где
-      #### etcdServers = [
-      ####    https://{instanceName}.{clusterName}.{domain}:2379
-      #### ] <-- кол-во эндпоинтов зависит от кол-ва мастеров (список мастеров можно передать в базовом конфиге)
       - --etcd-servers=${etcd_advertise_client_urls}
-      ##### Сертификаты - параметаризируются только пути - нужно завязываеть на выпускаемых сертификатах.
       - --tls-cert-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver"].certificates["kube-apiserver"].key-keeper-args.spec.host_path}/kube-apiserver.pem
       - --tls-private-key-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver"].certificates["kube-apiserver"].key-keeper-args.spec.host_path}/kube-apiserver-key.pem
       - --client-ca-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem
@@ -33,21 +28,11 @@ spec:
       - --requestheader-client-ca-file=${ssl.intermediate["front-proxy-ca"].host_path}/front-proxy-ca.pem
       - --service-account-key-file=${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pub
       - --service-account-signing-key-file=${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pem
-      #### -> CIDR для сервисной подсети (указывается обязательно - параметаризируется)
       - --service-cluster-ip-range=${service_cidr}
-      #### -> эта штука нужна когда надо указать адрес АПИ не локальный а адрес ЛБ от АПИ
-      #### На уровне Терраформа прозрачно не получилось сделать нужно придумать функцию, которая будет резолвить ДНС имя и вытаскивать IP
-      ###--> 
       # - --secure-port=6443
       # - --advertise-address=29.64.0.1
-  
-      ### Тут указывать список ip адресов с на которые сможет принимать трафик
-      ### 127.0.0.1,127.0.0.6,{LB_API_IP}
-      ###--> Если не можем затащить нужные адреса указываем все 0.0.0.0
-      - --bind-address=0.0.0.0
-  
-      ### Отдельный шаблон с политиками - параметаризируемый.
-      - --audit-policy-file=/etc/kubernetes/kube-apiserver/audit-policy.yaml
+      - --bind-address=0.0.0.0 # Нужно научить выставлять на адреса интерфейсов
+      - --audit-policy-file=${base_path.kubernetes_path}/kube-apiserver/audit-policy.yaml
       - --event-ttl=1h0m0s
       - --kubernetes-service-node-port=0
       - --master-service-namespace=default
@@ -112,7 +97,6 @@ spec:
       initialDelaySeconds: 10
       periodSeconds: 10
       timeoutSeconds: 15
-  ##### Пока не начали тянуть переменные путей сертификатов блоки волюмов не трогаем
     volumeMounts:
     - mountPath: /etc/ssl/certs
       name: ca-certs
@@ -126,7 +110,7 @@ spec:
     - mountPath: ${base_local_path_certs}/ca
       name: k8s-ca
       readOnly: true
-    - mountPath: /etc/kubernetes/kube-apiserver
+    - mountPath: ${base_path.kubernetes_path}/kube-apiserver
       name: k8s-kube-apiserver-configs
       readOnly: true
     - mountPath: /usr/local/share/ca-certificates
@@ -158,7 +142,7 @@ spec:
       type: DirectoryOrCreate
     name: k8s-ca
   - hostPath:
-      path: /etc/kubernetes/kube-apiserver
+      path: ${base_path.kubernetes_path}/kube-apiserver
       type: DirectoryOrCreate
     name: k8s-kube-apiserver-configs
   - hostPath:

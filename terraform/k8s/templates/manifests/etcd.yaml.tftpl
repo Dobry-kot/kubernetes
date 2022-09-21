@@ -14,10 +14,6 @@ spec:
     command:
       - etcd
     args:
-    ##### --initial-cluster= Формируется по маске ','.join(initialClusterMembers) где
-    #### initialClusterMembers = [
-    ####    {instanceName}.{clusterName}.{domain}=https://{instanceName}.{clusterName}.{domain}:2380
-    #### ] <-- кол-во эндпоинтов зависит от кол-ва мастеров (список мастеров можно передать в базовом конфиге)
     - --initial-cluster=${ etcd_initial_cluster }
     - --name=${ instance_name }.${base_domain}
     - --initial-advertise-peer-urls=https://${ instance_name }.${base_domain}:2380

@@ -45,9 +45,9 @@ variable "master_flavor" {
     core_fraction = string
   })
   default = {
-    core          = 2
-    memory        = 4
-    core_fraction = 20
+    core          = 4
+    memory        = 8
+    core_fraction = 100
   }
 }
 
@@ -78,20 +78,6 @@ variable "availability_zones"{
     ru-central1-c = "10.3.0.0/16"
   }
 }
-
-locals {
-  list_masters               = formatlist("master-%s.${var.cluster_name}.${var.base_domain}", 
-                                            range(length(var.availability_zones)))
-  etcd_list_servers          = formatlist("https://master-%s.${var.cluster_name}.${var.base_domain}:2379", 
-                                            range(length(var.availability_zones)))
-  etcd_list_initial_cluster  = formatlist("master-%s.${var.cluster_name}.${var.base_domain}=https://master-%s.${var.cluster_name}.${var.base_domain}:2380", 
-                                            range(length(var.availability_zones)), 
-                                            range(length(var.availability_zones)))
-
-  etcd_advertise_client_urls = join(",", local.etcd_list_servers)
-  etcd_initial_cluster       = join(",", local.etcd_list_initial_cluster)
-}
-
 
 locals {
   worker_replicas = range(3)

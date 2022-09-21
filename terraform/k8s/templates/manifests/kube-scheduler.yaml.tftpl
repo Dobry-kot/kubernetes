@@ -14,9 +14,9 @@ spec:
     command:
     - kube-scheduler
     args:
-      - --authentication-kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
-      - --authorization-kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
-      - --kubeconfig=/etc/kubernetes/kube-scheduler/kubeconfig 
+      - --authentication-kubeconfig=${base_path.kubernetes_path}/kube-scheduler/kubeconfig 
+      - --authorization-kubeconfig=${base_path.kubernetes_path}/kube-scheduler/kubeconfig 
+      - --kubeconfig=${base_path.kubernetes_path}/kube-scheduler/kubeconfig 
       - --tls-cert-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-server"].certificates["kube-scheduler-server"].key-keeper-args.spec.host_path}/kube-scheduler-server.pem 
       - --tls-private-key-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-server"].certificates["kube-scheduler-server"].key-keeper-args.spec.host_path}/kube-scheduler-server-key.pem 
       - --bind-address=0.0.0.0
@@ -48,7 +48,7 @@ spec:
       periodSeconds: 10
       timeoutSeconds: 15
     volumeMounts:
-    - mountPath: /etc/kubernetes/kube-scheduler
+    - mountPath: ${base_path.kubernetes_path}/kube-scheduler
       name: k8s-kube-scheduler-configs
       readOnly: true
     - mountPath: ${base_local_path_certs}/certs
@@ -64,7 +64,7 @@ spec:
         type: RuntimeDefault 
   volumes:
   - hostPath:
-      path: /etc/kubernetes/kube-scheduler
+      path: ${base_path.kubernetes_path}/kube-scheduler
       type: DirectoryOrCreate
     name: k8s-kube-scheduler-configs
   - hostPath:

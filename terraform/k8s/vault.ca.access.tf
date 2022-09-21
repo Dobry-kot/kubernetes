@@ -15,8 +15,8 @@ resource "vault_approle_auth_backend_role" "kubernetes-ca" {
   for_each  = toset(keys(local.ssl.intermediate))
   backend                 = vault_auth_backend.approle.path
   role_name               = "${each.key}"
-  token_ttl               = 300
-  token_policies          = ["default", vault_policy.kubernetes-ca[each.key].name]
+  token_ttl               = 30000
+  token_policies          = [vault_policy.kubernetes-ca[each.key].name]
   secret_id_bound_cidrs   = []
   token_bound_cidrs       = []
 }

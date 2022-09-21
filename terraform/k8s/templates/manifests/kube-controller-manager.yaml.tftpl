@@ -17,14 +17,14 @@ spec:
       - --tls-cert-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-server"].certificates["kube-controller-manager-server"].key-keeper-args.spec.host_path}/kube-controller-manager-server.pem 
       - --tls-private-key-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-server"].certificates["kube-controller-manager-server"].key-keeper-args.spec.host_path}/kube-controller-manager-server-key.pem 
       - --client-ca-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem 
-      - --cluster-signing-cert-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem 
       # Не требуется, если используется внешний модуль подписи сертификатов
-      # - --cluster-signing-key-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca-key.pem 
+      #- --cluster-signing-key-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca-key.pem
+      #- --cluster-signing-cert-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem 
       - --requestheader-client-ca-file=${ssl.intermediate["front-proxy-ca"].host_path}/front-proxy-ca.pem 
       - --service-account-private-key-file=${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pem
-      - --kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig 
-      - --authentication-kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig 
-      - --authorization-kubeconfig=/etc/kubernetes/kube-controller-manager/kubeconfig
+      - --kubeconfig=${base_path.kubernetes_path}/kube-controller-manager/kubeconfig 
+      - --authentication-kubeconfig=${base_path.kubernetes_path}/kube-controller-manager/kubeconfig 
+      - --authorization-kubeconfig=${base_path.kubernetes_path}/kube-controller-manager/kubeconfig
       - --root-ca-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem
       - --bind-address=0.0.0.0
       - --v=2
@@ -91,20 +91,20 @@ spec:
       readOnly: true
     - mountPath: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
       name: flexvolume-dir
-    - mountPath: ${base_local_path_certs}/certs
-      name: k8s-certs
-      readOnly: true
-    - mountPath: ${base_local_path_certs}/ca
-      name: k8s-ca
-      readOnly: true
-    - mountPath: /etc/kubernetes/kube-controller-manager
-      name: k8s-kube-controller-manager-configs
-      readOnly: true
     - mountPath: /usr/local/share/ca-certificates
       name: usr-local-share-ca-certificates
       readOnly: true
     - mountPath: /usr/share/ca-certificates
       name: usr-share-ca-certificates
+      readOnly: true
+    - mountPath: ${base_path.kubernetes_path}/kube-controller-manager
+      name: k8s-kube-controller-manager-configs
+      readOnly: true
+    - mountPath: ${base_local_path_certs}/certs
+      name: k8s-certs
+      readOnly: true
+    - mountPath: ${base_local_path_certs}/ca
+      name: k8s-ca
       readOnly: true
   hostNetwork: true
   priorityClassName: system-node-critical
@@ -133,7 +133,7 @@ spec:
       type: DirectoryOrCreate
     name: k8s-ca
   - hostPath:
-      path: /etc/kubernetes/kube-controller-manager
+      path: ${base_path.kubernetes_path}/kube-controller-manager
       type: DirectoryOrCreate
     name: k8s-kube-controller-manager-configs
   - hostPath:

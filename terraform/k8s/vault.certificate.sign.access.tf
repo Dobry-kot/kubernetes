@@ -19,6 +19,7 @@ resource "vault_approle_auth_backend_role" "kubernetes-sign" {
   backend                 = "${vault_auth_backend.approle.path}"
   role_name               = split(":","${each.key}")[1]
   token_ttl               = 300
+  # secret_id_num_uses      = 1
   token_policies          = ["default", vault_policy.kubernetes-sign[each.key].name]
   secret_id_bound_cidrs   = []
   token_bound_cidrs       = []

@@ -36,6 +36,60 @@ write_files:
       WantedBy=multi-user.target
 
 
+  - path: /root/.bashrc
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # .bashrc
+
+      # User specific aliases and functions
+
+      PROMPT_COMMAND='history -a'
+      export HISTCONTROL="ignoreboth"
+      export HISTIGNORE=""
+      shopt -s cmdhist
+
+      alias rm='rm -i'
+      alias cp='cp -i'
+      alias mv='mv -i'
+
+      alias kg='kubectl get'
+      alias ka='kubectl apply'
+      alias kd='kubectl delete'
+      alias ki='kubectl describe'
+      alias ke='kubectl edit'
+      alias k='kubectl '
+      alias kl='kubectl logs '
+
+      alias crictl='crictl  --runtime-endpoint unix:///run/containerd/containerd.sock '
+
+      new_kubeconfig () {
+        SRC_SSH_PORT=$(env | grep SSH_CONNECTION | awk '{print $2}')
+        cp -uf ${base_path.kubernetes_path}/kube-apiserver/kubeconfig /tmp/$\{USER\}.$\{SRC_SSH_PORT\}.kubeconfig
+        export KUBECONFIG=/tmp/$\{USER\}.$\{SRC_SSH_PORT\}.kubeconfig
+      }
+      new_kubeconfig
+
+      kns () {
+        kubectl config set-context --current --namespace=$1
+      }
+
+      estat () {
+          ENDPOINTS=$(cat ${base_path.static_pod_path}/kube-apiserver.yaml | grep etcd-servers=https | awk -F "=" '{print $2}')
+          etcdctl \
+          --write-out=table \
+          --endpoints=$ENDPOINTS \
+          --cert ${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.spec.host_path}/kube-apiserver-etcd-client.pem \
+          --key ${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.spec.host_path}/kube-apiserver-etcd-client-key.pem \
+          --cacert ${ssl.intermediate["etcd-ca"].host_path}/etcd-ca.pem \
+          endpoint status
+      }
+
+      # Source global definitions
+      if [ -f /etc/bashrc ]; then
+              . /etc/bashrc
+      fi
+
   - path: ${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pub
     owner: root:root
     permissions: '0644'
@@ -49,23 +103,12 @@ write_files:
     content: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBei8vdGpyeGh3K0xzOFlsYmswTUgzcW96OHRuRlhMcFYxR2t4bzdnZ1hqZXY5SHV0CjNGTzdxWkM1d3A4WXpsL2I2WnhUZjRlSmdJd2crVm16SHB4ZDlaSGxBWlZDOE92alRjU2NRNUpRZlh0WTRVZ24KUm01K0FhMTUxU0x0RnN5bTNtWnR6TG11OHlMZGdraDlld1oybTEwYkRQb0VkUnZjazE5cWM2K0pKTzhVNmxmawpnOGVja2svbC9yYWYyM3pZRFdjcEhiSE9ia251QTNxWUdvZFhkaitBY0gwNGI3ZG42VVhpb0Iyd3liakRIZDBICjQzZGdOUWh3MWg4TlNETUtPMEJQL1pvZk1vTm4zdXhoNWp5L0taTFUvTTd5NHExYlptTVZ6c0tMaW9sMlhmSksKSWZiREZrcXFEeEJ4OVVKeW5zVEJnL1R6MzFmVDVuNHRpYU9IaXdJREFRQUJBb0lCQVFDTlE4WTFzTis5U0h1ZwpONmZJUmpnc0UvQ2dPU0wvclZYcG8yQWhUMFk4ZHhtN3M5d0t6WnVndURoUlkvaFhBV2U4SzMzU0dWMWJ2dEFPClNjdUxPS3Zmd3F5RC9MbXdJcVVJQmtZUzVtWmdNc3ZVaFVxWFhTZWJRQlNFbXVubkdDc2sxUEF4b05LZk1zaTYKV1QxUHRyNExHcHJxbjBzenRpNkNzTVQ5dVBRdDdqRVR2cWM4MnYyY0JIZEQyY0NvcDl5WlNLdlBtcW5kbXdUeQpCV3BLN1ZkNlNDQ2lOOXlOT1ZBZVJPcmN2TWdIWCtkSlBRM2Fad1BrUHRLZHFZUVNMMDZZc1VER0IxQ1RCTnAwCkE5czBRUnNzMVp1cmR1TEh2RHQwclB4RTJlL2huVFpxYXhjWTF3bUg3NFdFSVgwUStnUDMvcXVib29EeUtpSXMKWWRIYndDRGhBb0dCQU9qSTRkbklNcThENnVuNTNMTGZzQzArczVvZmtTOFZVV0NucjIxNTJGbWs0Y0h0Y2pMcgo4RXJGM0FzQTlmdys4YlZQbFFRUW1CTXdqczFsZVZ4UklkdENqOVRSdGFjdGh3VDRFOUwybllwMlVHNzU5dTltCkQrQjRST09jNGlqQnRGUHBOVzlIOEZGWHhkR3NTdUNpanZEWTZ5KzhGK2JxZXNndk5Oc0pnQW1KQW9HQkFPUysKUmFHcXQ0eW1IUUNxRXpKR2lCMEpsdkc0dlFoQTc1eDB3TXpzQjlESkh1dTlaU1MwYWRQNFRqMXY0VExoQnhabgpTdTR3akVnaUNLbUZ1RlBsVWs4bE91Q1FOYnY2Tzl6MGx4eE93djY5Wm9uQm9VSDluYWhLK3JvTzN5QzVwR3RJCnFUTHhPZHhaUmxGall4czMveGFCeTFTN2ZFNklETkRmL3VWeFdJZHpBb0dCQUt0Y1ZZWHdMZjlRTHZvV2lUVFUKSGVqd28xM3RwdjYxL3JYY092T29JbSs3Uk1WeGVnT3FVN1YzZWNoUDZNVEx3VHJyWHBNamRBK01TMU5BUTlxRgpqeHJOSVB4VmRCZWhHQ2U4Unp1aGQ4K1owUlFneG5yczh2c1hEZjlRV2R3TzNDUjVKSERLMEVuUkJ6cVdUbmlXCnNncnlaQTg3czR5MVI3VmRxdGNqWXpHaEFvR0FOYWpsRU0zSmpUY1NxcXM3SVpvbUtCbXR6VHEzTFk1K0owZkUKU3M0Nzd5Q2ZIbElwdmZpTXN1c1cvNWFWVDZnMlQyMGZ5TXlldS9Vdjd3U3RmeERXeERaSm41QjA2b29ETFF3Nwp2cXBEV0JyNlNPcWhkNmVWS251Y1liVkhacGZtR0R6TlpHUHVYT0NjZkU5Q1dvcENUdmRYeWFMSndHcHVCem5rCnc5SlpJRDBDZ1lBNSttWDBKRVRkcmc3bTRrSXR4VXJvUTdyTStFYUpnUzRqZFV3cW5NRFdQYUhwYXR4bjFNeUgKUE5DcGFyK0dRUFU0WUNIZENxdFNDMERBVW1QeU5id2MrQmhxeTVKNHpSYnNST0pWU29QZ01iL0xkd09kc1F1NgprbGFuQVVvMHpqV2lZRDNsOTR2dmVqUGxZS1lRQmpZeTBScGhpQjV3VHBVK2d1b1lkS0JRVlE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
 
 ####### Настройка kubelet
-  - path: /etc/kubernetes/kube-apiserver/audit-policy.yaml
-    owner: root:root
-    permissions: '0644'
-    content: |
-      ---
-      apiVersion: audit.k8s.io/v1
-      kind: Policy
-      rules:
-      - level: Metadata
-      - level: RequestResponse
-
-  - path: /etc/kubernetes/kubelet/service/kubelet-args.env
+  - path: ${base_path.kubernetes_path}/kubelet/service/kubelet-args.env
     owner: root:root
     permissions: '0644'
     content: |
       KUBELET_HOSTNAME="
-          --hostname-override=${ instance_name }.${base_domain}
+          --hostname-override=${ instance_name }
           --node-labels=node.kubernetes.io/${instance_type}
       "
       KUBELET_BASIC_ARGS="
@@ -82,32 +125,40 @@ write_files:
           --network-plugin=cni
       "
       KUBELET_CONFIGS_ARGS="
-          --config=/etc/kubernetes/kubelet/config.yaml
+          --config=${base_path.kubernetes_path}/kubelet/config.yaml
           --root-dir=/var/lib/kubelet
           --register-node=true
           --image-pull-progress-deadline=2m
           --v=2
       "
       KUBELET_KUBECONFIG_ARGS="
-          --kubeconfig=/etc/kubernetes/kubelet/kubeconfig
-          --bootstrap-kubeconfig=/etc/kubernetes/kubelet/bootstrap-kubeconfig
+          --kubeconfig=${base_path.kubernetes_path}/kubelet/kubeconfig
+          --bootstrap-kubeconfig=${base_path.kubernetes_path}/kubelet/bootstrap-kubeconfig
       "
       KUBELET_RUNTIME_ARGS="
           --container-runtime=remote
           --container-runtime-endpoint=/run/containerd/containerd.sock
           --pod-infra-container-image=k8s.gcr.io/pause:3.6
       "
-  
+
   - path: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
     owner: root:root
     permissions: '0644'
     content: |
       [Service]
-      EnvironmentFile=-/etc/kubernetes/kubelet/service/kubelet-args.env
- 
-      ExecStart=/usr/bin/kubelet $KUBELET_HOSTNAME $KUBELET_CNI_ARGS $KUBELET_RUNTIME_ARGS $KUBELET_AUTH_ARGS $KUBELET_CONFIGS_ARGS $KUBELET_BASIC_ARGS $KUBELET_KUBECONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS $KUBELET_ARGS
+      EnvironmentFile=-${base_path.kubernetes_path}/kubelet/service/kubelet-args.env
+      
+      ExecStart=
+      ExecStart=/usr/bin/kubelet \
+        $KUBELET_HOSTNAME \
+        $KUBELET_CNI_ARGS \
+        $KUBELET_RUNTIME_ARGS \
+        $KUBELET_AUTH_ARGS \
+        $KUBELET_CONFIGS_ARGS \
+        $KUBELET_BASIC_ARGS \
+        $KUBELET_KUBECONFIG_ARGS
 
-  - path: /etc/kubernetes/kubelet/config.yaml
+  - path: ${base_path.kubernetes_path}/kubelet/config.yaml
     owner: root:root
     permissions: '0644'
     content: |
@@ -129,7 +180,7 @@ write_files:
           cacheUnauthorizedTTL: 0s
       cgroupDriver: systemd
       clusterDNS:
-        - "29.64.0.10"
+        - "${kubelet-config.dns_address}"
       clusterDomain: cluster.local
       cpuManagerReconcilePeriod: 0s
       evictionPressureTransitionPeriod: 0s
@@ -154,7 +205,7 @@ write_files:
       serverTLSBootstrap: true
       shutdownGracePeriod: 0s
       shutdownGracePeriodCriticalPods: 0s
-      staticPodPath: "/etc/kubernetes/manifests"
+      staticPodPath: "${base_path.static_pod_path}"
       streamingConnectionIdleTimeout: 0s
       syncFrequency: 0s
       volumeStatsAggPeriod: 0s
@@ -168,25 +219,25 @@ write_files:
 
 
 ####### Статик поды для создания контрол плейна
-  - path: /etc/kubernetes/manifests/etcd.yaml
+  - path: ${base_path.static_pod_path}/etcd.yaml
     owner: root:root
     permissions: '0644'
     content: |
       ${indent(6, etcd-manifest)}
 
-  - path: /etc/kubernetes/manifests/kube-apiserver.yaml
+  - path: ${base_path.static_pod_path}/kube-apiserver.yaml
     owner: root:root
     permissions: '0644'
     content: |
       ${indent(6, kube-apiserver-manifest)}
 
-  - path: /etc/kubernetes/manifests/kube-controller-manager.yaml
+  - path: ${base_path.static_pod_path}/kube-controller-manager.yaml
     owner: root:root
     permissions: '0644'
     content: |
       ${indent(6, kube-controller-manager-manifest)}
 
-  - path: /etc/kubernetes/manifests/kube-scheduler.yaml
+  - path: ${base_path.static_pod_path}/kube-scheduler.yaml
     owner: root:root
     permissions: '0644'
     content: |
@@ -194,7 +245,7 @@ write_files:
 
 
 ####### KUBECONFIGS для подключения к кластеру
-  - path: /etc/kubernetes/kube-scheduler/kubeconfig
+  - path: ${base_path.kubernetes_path}/kube-scheduler/kubeconfig
     owner: root:root
     permissions: '0644'
     content: |
@@ -220,7 +271,7 @@ write_files:
           client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-client"].certificates["kube-scheduler-client"].key-keeper-args.spec.host_path}/kube-scheduler-client.pem
           client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-client"].certificates["kube-scheduler-client"].key-keeper-args.spec.host_path}/kube-scheduler-client-key.pem
 
-  - path: /etc/kubernetes/kube-controller-manager/kubeconfig
+  - path: ${base_path.kubernetes_path}/kube-controller-manager/kubeconfig
     owner: root:root
     permissions: '0644'
     content: |
@@ -246,7 +297,7 @@ write_files:
           client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-client"].certificates["kube-controller-manager-client"].key-keeper-args.spec.host_path}/kube-controller-manager-client.pem
           client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-client"].certificates["kube-controller-manager-client"].key-keeper-args.spec.host_path}/kube-controller-manager-client-key.pem
 
-  - path: /etc/kubernetes/kube-apiserver/kubeconfig
+  - path: ${base_path.kubernetes_path}/kube-apiserver/kubeconfig
     owner: root:root
     permissions: '0644'
     content: |
@@ -272,7 +323,7 @@ write_files:
           client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.spec.host_path}/kube-apiserver-kubelet-client.pem
           client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.spec.host_path}/kube-apiserver-kubelet-client-key.pem
 
-  - path: /etc/kubernetes/kubelet/kubeconfig
+  - path: ${base_path.kubernetes_path}/kubelet/kubeconfig
     owner: root:root
     permissions: '0644'
     content: |
@@ -298,3 +349,14 @@ write_files:
           client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-client"].certificates["kubelet-client"].key-keeper-args.spec.host_path}/kubelet-client.pem
           client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-client"].certificates["kubelet-client"].key-keeper-args.spec.host_path}/kubelet-client-key.pem
 
+####### Второстепенная настройка
+  - path: ${base_path.kubernetes_path}/kube-apiserver/audit-policy.yaml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      ---
+      apiVersion: audit.k8s.io/v1
+      kind: Policy
+      rules:
+      - level: Metadata
+      - level: RequestResponse

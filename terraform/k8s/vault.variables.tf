@@ -74,6 +74,9 @@ locals {
 
     intermediate = {
       kubernetes-ca = {
+        labels = {
+          type = "worker"
+        }
         common_name   = "Kubernetes Intermediate CA",
         description   = "Kubernetes Intermediate CA"
         path          = "clusters/${var.cluster_name}/pki/kubernetes"
@@ -310,6 +313,9 @@ locals {
             }
           },
           kubelet-server = {
+            labels = {
+              type = "worker"
+            }
             issuer-args = {
               backend   = "clusters/${var.cluster_name}/pki/kubernetes"
               key_usage = ["DigitalSignature", "KeyAgreement", "KeyEncipherment", "ServerAuth"]
@@ -356,6 +362,9 @@ locals {
             }
           }
           kubelet-client = {
+            labels = {
+              type = "worker"
+            }
             issuer-args = {
               backend   = "clusters/${var.cluster_name}/pki/kubernetes"
               key_usage = ["DigitalSignature", "KeyAgreement", "KeyEncipherment", "ClientAuth"]
@@ -587,25 +596,4 @@ locals {
   access_cidr_availability_zones = flatten([for zone_name in keys(var.availability_zones) : [var.availability_zones[zone_name]]])
   access_cidr_vault = "${concat(local.access_cidr_availability_zones, var.bastion_cidr)}"
 
-
 }
-
-
-locals {
-  kubelet-settings = templatefile("templates/kubelet/kubelet-settings.yaml.tftmpl", {
-    args-custom-cni         = file("templates/kubelet/service/args-custom-cni.env.tftmpl")
-    args-custom-runtime     = file("templates/kubelet/service/args-custom-runtime.env.tftmpl")
-    args-custom-auth        = file("templates/kubelet/service/args-custom-auth.env.tftmpl")
-    args-custom-configs     = file("templates/kubelet/service/args-custom-configs.env.tftmpl")
-    args-basic              = file("templates/kubelet/service/args-basic.env.tftmpl")
-    args-custom-kubeconfig  = file("templates/kubelet/service/args-custom-kubeconfig.env.tftmpl")
-    service-conf            = file("templates/kubelet/service/service.conf.tftmpl")
-  })
-  # test = templatefile("templates/kubelet/service/t.tftmpl", {
-  #   kubelet-settings = local.kubelet-settings
-  # })
-}
-
-# output "name" {
-#   value = local.test
-# }
