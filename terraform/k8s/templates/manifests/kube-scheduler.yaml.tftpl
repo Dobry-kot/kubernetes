@@ -17,8 +17,8 @@ spec:
       - --authentication-kubeconfig=${base_path.kubernetes_path}/kube-scheduler/kubeconfig 
       - --authorization-kubeconfig=${base_path.kubernetes_path}/kube-scheduler/kubeconfig 
       - --kubeconfig=${base_path.kubernetes_path}/kube-scheduler/kubeconfig 
-      - --tls-cert-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-server"].certificates["kube-scheduler-server"].key-keeper-args.spec.host_path}/kube-scheduler-server.pem 
-      - --tls-private-key-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-server"].certificates["kube-scheduler-server"].key-keeper-args.spec.host_path}/kube-scheduler-server-key.pem 
+      - --tls-cert-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-server"].certificates["kube-scheduler-server"].key-keeper-args.host_path}/kube-scheduler-server.pem 
+      - --tls-private-key-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-server"].certificates["kube-scheduler-server"].key-keeper-args.host_path}/kube-scheduler-server-key.pem 
       - --bind-address=0.0.0.0
       - --leader-elect=true
       - --secure-port=10259

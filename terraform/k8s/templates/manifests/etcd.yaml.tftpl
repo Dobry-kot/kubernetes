@@ -19,11 +19,11 @@ spec:
     - --initial-advertise-peer-urls=https://${ instance_name }.${base_domain}:2380
     - --advertise-client-urls=https://${ instance_name }.${base_domain}:2379
     - --trusted-ca-file=${ssl.intermediate["etcd-ca"].host_path}/etcd-ca.pem
-    - --cert-file=${ssl.intermediate["etcd-ca"].issuers["etcd-server"].certificates["etcd-server"].key-keeper-args.spec.host_path}/etcd-server.pem
-    - --key-file=${ssl.intermediate["etcd-ca"].issuers["etcd-server"].certificates["etcd-server"].key-keeper-args.spec.host_path}/etcd-server-key.pem
+    - --cert-file=${ssl.intermediate["etcd-ca"].issuers["etcd-peer"].certificates["etcd-server"].key-keeper-args.host_path}/etcd-server.pem
+    - --key-file=${ssl.intermediate["etcd-ca"].issuers["etcd-peer"].certificates["etcd-server"].key-keeper-args.host_path}/etcd-server-key.pem
     - --peer-trusted-ca-file=${ssl.intermediate["etcd-ca"].host_path}/etcd-ca.pem
-    - --peer-cert-file=${ssl.intermediate["etcd-ca"].issuers["etcd-peer"].certificates["etcd-peer"].key-keeper-args.spec.host_path}/etcd-peer.pem
-    - --peer-key-file=${ssl.intermediate["etcd-ca"].issuers["etcd-peer"].certificates["etcd-peer"].key-keeper-args.spec.host_path}/etcd-peer-key.pem
+    - --peer-cert-file=${ssl.intermediate["etcd-ca"].issuers["etcd-peer"].certificates["etcd-peer"].key-keeper-args.host_path}/etcd-peer.pem
+    - --peer-key-file=${ssl.intermediate["etcd-ca"].issuers["etcd-peer"].certificates["etcd-peer"].key-keeper-args.host_path}/etcd-peer-key.pem
     - --listen-client-urls=https://0.0.0.0:2379
     - --listen-peer-urls=https://0.0.0.0:2380
     - --listen-metrics-urls=http://0.0.0.0:2381

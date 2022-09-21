@@ -17,6 +17,10 @@ path "auth/clusters/${cluster_name}/approle/role/${approle_name}/role-id" {
 
 path "auth/clusters/${cluster_name}/approle/role/${approle_name}/secret-id" {
   capabilities = [ "update" ]
+} 
+
+path "auth/clusters/${cluster_name}/approle/login" {
+  capabilities = [ "update" ]
 }
 
 path "auth/token/renew" {

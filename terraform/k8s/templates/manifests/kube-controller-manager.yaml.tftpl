@@ -14,8 +14,8 @@ spec:
     command:
       - kube-controller-manager
     args:
-      - --tls-cert-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-server"].certificates["kube-controller-manager-server"].key-keeper-args.spec.host_path}/kube-controller-manager-server.pem 
-      - --tls-private-key-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-server"].certificates["kube-controller-manager-server"].key-keeper-args.spec.host_path}/kube-controller-manager-server-key.pem 
+      - --tls-cert-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-server"].certificates["kube-controller-manager-server"].key-keeper-args.host_path}/kube-controller-manager-server.pem 
+      - --tls-private-key-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-server"].certificates["kube-controller-manager-server"].key-keeper-args.host_path}/kube-controller-manager-server-key.pem 
       - --client-ca-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem 
       # Не требуется, если используется внешний модуль подписи сертификатов
       #- --cluster-signing-key-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca-key.pem

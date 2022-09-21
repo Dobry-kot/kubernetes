@@ -61,12 +61,12 @@ locals {
             encoding  = "PKCS1"
             size      = 4096
           }
-          ttl         = "100h"
+          ttl         = "2h"
           ipAddresses = {}
           hostnames   = []
           usages      = []
         }
-        renewBefore   = "50h"
+        renewBefore   = "1h"
         trigger       = []
 
       }
@@ -108,8 +108,8 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host_path = "${local.base_local_path_certs}/certs/kube-controller-manager"
                   }
+                  host_path     = "${local.base_local_path_certs}/certs/kube-controller-manager"
                 }
               }
 
@@ -133,6 +133,9 @@ locals {
             }
             certificates = {
               kube-controller-manager-server = {
+                labels = {
+                  component = "kube-controller-manager"
+                }
                 key-keeper-args = {
                   spec = {
                     subject = {
@@ -154,8 +157,8 @@ locals {
                         "eth*"
                       ]
                     }
-                    host_path = "${local.base_local_path_certs}/certs/kube-controller-manager"
                   }
+                  host_path = "${local.base_local_path_certs}/certs/kube-controller-manager"
                 }
               }
 
@@ -184,8 +187,8 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                   }
+                  host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                 }
               }
             }
@@ -210,6 +213,9 @@ locals {
             }
             certificates = {
               kube-apiserver = {
+                labels = {
+                  component = "kube-apiserver"
+                }
                 key-keeper-args = {
                   spec = {
                     subject = {
@@ -218,7 +224,6 @@ locals {
                     usages = [
                       "server auth",
                     ]
-                    host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                     hostnames = [
                       "localhost",
                       "kubernetes",
@@ -238,6 +243,7 @@ locals {
                       ]
                     }
                   }
+                  host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                 }
               }
             }
@@ -260,6 +266,9 @@ locals {
             }
             certificates = {
               kube-scheduler-server = {
+                labels = {
+                  component = "kube-scheduler"
+                }
                 key-keeper-args = {
                   spec = {
                     subject = {
@@ -281,8 +290,8 @@ locals {
                         "eth*"
                       ]
                     }
-                    host_path = "${local.base_local_path_certs}/certs/kube-scheduler"
                   }
+                  host_path = "${local.base_local_path_certs}/certs/kube-scheduler"
                 }
               }
             }
@@ -306,8 +315,8 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host_path = "${local.base_local_path_certs}/certs/kube-scheduler"
                   }
+                  host_path = "${local.base_local_path_certs}/certs/kube-scheduler"
                 }
               }
             }
@@ -355,8 +364,10 @@ locals {
                       ]
                       dnsLookup = []
                     }
-                    host_path = "${local.base_local_path_certs}/certs/kubelet"
+                    ttl = "200h"
                   }
+                  host_path     = "${local.base_local_path_certs}/certs/kubelet"
+                  renewBefore   = "100h"
                 }
               }
             }
@@ -389,8 +400,8 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host_path = "${local.base_local_path_certs}/certs/kubelet"
                   }
+                  host_path = "${local.base_local_path_certs}/certs/kubelet"
                 }
               }
             }
@@ -425,7 +436,56 @@ locals {
               allow_localhost = true
             }
             certificates = {
+              # etcd-server = {
+              #   labels = {
+              #     component = "etcd"
+              #   }
+              #   key-keeper-args = {
+              #     spec = {
+              #       subject = {
+              #         commonName = "system:etcd-server"
+              #       }
+              #       usages = [
+              #         "server auth",
+              #       ]
+              #       hostnames = [
+              #         "localhost",
+              #       ]
+              #       ipAddresses = {
+              #         interfaces = [
+              #           "lo",
+              #           "eth*"
+              #         ]
+              #         dnsLookup = []
+              #       }
+              #     }
+              #     host_path = "${local.base_local_path_certs}/certs/etcd"
+              #   }
+              # }
+            }
+          },
+          etcd-peer = {
+            issuer-args = {
+              backend   = "clusters/${var.cluster_name}/pki/etcd"
+              key_usage = ["DigitalSignature", "KeyAgreement", "KeyEncipherment", "ServerAuth", "ClientAuth"]
+              allowed_domains = [
+                "system:etcd-peer",
+                "system:etcd-server",
+                "localhost",
+                "*.${var.cluster_name}.${var.base_domain}",
+                "custom:etcd-peer",
+                "custom:etcd-server"
+              ]
+              client_flag     = true
+              server_flag     = true
+              allow_ip_sans   = true
+              allow_localhost = true
+            }
+            certificates = {
               etcd-server = {
+                labels = {
+                  component = "etcd"
+                }
                 key-keeper-args = {
                   spec = {
                     subject = {
@@ -433,8 +493,8 @@ locals {
                     }
                     usages = [
                       "server auth",
+                      "client auth"
                     ]
-                    host_path = "${local.base_local_path_certs}/certs/etcd"
                     hostnames = [
                       "localhost",
                     ]
@@ -446,27 +506,13 @@ locals {
                       dnsLookup = []
                     }
                   }
+                  host_path = "${local.base_local_path_certs}/certs/etcd"
                 }
               }
-            }
-          },
-          etcd-peer = {
-            issuer-args = {
-              backend   = "clusters/${var.cluster_name}/pki/etcd"
-              key_usage = ["DigitalSignature", "KeyAgreement", "KeyEncipherment", "ServerAuth", "ClientAuth"]
-              allowed_domains = [
-                "system:etcd-peer",
-                "localhost",
-                "*.${var.cluster_name}.${var.base_domain}",
-                "custom:etcd-peer"
-              ]
-              client_flag     = true
-              server_flag     = true
-              allow_ip_sans   = true
-              allow_localhost = true
-            }
-            certificates = {
               etcd-peer = {
+                labels = {
+                  component = "etcd"
+                }
                 key-keeper-args = {
                   spec = {
                     subject = {
@@ -486,8 +532,8 @@ locals {
                       ]
                       dnsLookup = []
                     }
-                    host_path = "${local.base_local_path_certs}/certs/etcd"
                   }
+                  host_path = "${local.base_local_path_certs}/certs/etcd"
                 }
               }
             }
@@ -513,8 +559,8 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                   }
+                  host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                 }
               }
             }
@@ -554,8 +600,8 @@ locals {
                     usages = [
                       "client auth"
                     ]
-                    host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                   }
+                  host_path = "${local.base_local_path_certs}/certs/kube-apiserver"
                 }
               }
             }

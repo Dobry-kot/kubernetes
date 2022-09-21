@@ -15,16 +15,16 @@ spec:
     - kube-apiserver     
     args:
       - --etcd-servers=${etcd_advertise_client_urls}
-      - --tls-cert-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver"].certificates["kube-apiserver"].key-keeper-args.spec.host_path}/kube-apiserver.pem
-      - --tls-private-key-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver"].certificates["kube-apiserver"].key-keeper-args.spec.host_path}/kube-apiserver-key.pem
+      - --tls-cert-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver"].certificates["kube-apiserver"].key-keeper-args.host_path}/kube-apiserver.pem
+      - --tls-private-key-file=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver"].certificates["kube-apiserver"].key-keeper-args.host_path}/kube-apiserver-key.pem
       - --client-ca-file=${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem
       - --etcd-cafile=${ssl.intermediate["etcd-ca"].host_path}/etcd-ca.pem
-      - --etcd-certfile=${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.spec.host_path}/kube-apiserver-etcd-client.pem
-      - --etcd-keyfile=${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.spec.host_path}/kube-apiserver-etcd-client-key.pem
-      - --kubelet-client-certificate=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.spec.host_path}/kube-apiserver-kubelet-client.pem
-      - --kubelet-client-key=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.spec.host_path}/kube-apiserver-kubelet-client-key.pem
-      - --proxy-client-cert-file=${ssl.intermediate["front-proxy-ca"].issuers["front-proxy-client"].certificates["front-proxy-client"].key-keeper-args.spec.host_path}/front-proxy-client.pem
-      - --proxy-client-key-file=${ssl.intermediate["front-proxy-ca"].issuers["front-proxy-client"].certificates["front-proxy-client"].key-keeper-args.spec.host_path}/front-proxy-client-key.pem
+      - --etcd-certfile=${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.host_path}/kube-apiserver-etcd-client.pem
+      - --etcd-keyfile=${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.host_path}/kube-apiserver-etcd-client-key.pem
+      - --kubelet-client-certificate=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.host_path}/kube-apiserver-kubelet-client.pem
+      - --kubelet-client-key=${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.host_path}/kube-apiserver-kubelet-client-key.pem
+      - --proxy-client-cert-file=${ssl.intermediate["front-proxy-ca"].issuers["front-proxy-client"].certificates["front-proxy-client"].key-keeper-args.host_path}/front-proxy-client.pem
+      - --proxy-client-key-file=${ssl.intermediate["front-proxy-ca"].issuers["front-proxy-client"].certificates["front-proxy-client"].key-keeper-args.host_path}/front-proxy-client-key.pem
       - --requestheader-client-ca-file=${ssl.intermediate["front-proxy-ca"].host_path}/front-proxy-ca.pem
       - --service-account-key-file=${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pub
       - --service-account-signing-key-file=${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pem

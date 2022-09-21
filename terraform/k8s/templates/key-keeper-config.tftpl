@@ -148,6 +148,8 @@ certificates:
           %{~ endif ~}
         %{~ endif ~}
       %{~ endif ~}
+      ttl: ${try(certificate["key-keeper-args"].spec.ttl, base_certificate_atrs.spec.ttl)}
+      renewBefore: ${try(certificate["key-keeper-args"].renewBefore, base_certificate_atrs.renewBefore)}
       %{~ if try(certificate["key-keeper-args"].spec.hostnames, base_certificate_atrs.spec.hostnames) != [] ~}
       hostnames:
       %{~ for hostname in try(certificate["key-keeper-args"].spec.hostnames, base_certificate_atrs.spec.hostnames) ~}
@@ -158,7 +160,11 @@ certificates:
           %{~ else ~}
           %{~ endif ~}
       %{~ endif ~}
-    hostPath: "${certificate["key-keeper-args"].spec.host_path}"
+    hostPath: "${certificate["key-keeper-args"].host_path}"
+      %{~ if try(try(certificate.labels.component), "") != "" ~}
+    trigger:
+      - crictl stop $(crictl ps --name ${try(certificate.labels.component)} -o json | jq .containers[0].id | sed 's/"//g')
+      %{~ endif ~}
 
     %{~ endfor ~}
   %{~ endfor ~}

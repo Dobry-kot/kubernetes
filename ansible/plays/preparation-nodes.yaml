@@ -57,10 +57,13 @@
 
         - name: pull an image
           shell:
-            ctr image pull {{ component_image }}
+            crictl --runtime-endpoint unix:///run/containerd/containerd.sock pull  {{ component_image }}
           loop:
-            - k8s.gcr.io/etcd:3.5.3-0
+            - k8s.gcr.io/etcd:3.5.3-0 
             - k8s.gcr.io/kube-apiserver:v1.23.5
+            - k8s.gcr.io/kube-controller-manager:v1.23.5
+            - k8s.gcr.io/kube-scheduler:v1.23.5
+            - k8s.gcr.io/pause:3.6
           loop_control:
             loop_var: component_image
           tags:

@@ -79,8 +79,8 @@ write_files:
           etcdctl \
           --write-out=table \
           --endpoints=$ENDPOINTS \
-          --cert ${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.spec.host_path}/kube-apiserver-etcd-client.pem \
-          --key ${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.spec.host_path}/kube-apiserver-etcd-client-key.pem \
+          --cert ${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.host_path}/kube-apiserver-etcd-client.pem \
+          --key ${ssl.intermediate["etcd-ca"].issuers["etcd-client"].certificates["kube-apiserver-etcd-client"].key-keeper-args.host_path}/kube-apiserver-etcd-client-key.pem \
           --cacert ${ssl.intermediate["etcd-ca"].host_path}/etcd-ca.pem \
           endpoint status
       }
@@ -171,8 +171,8 @@ write_files:
           enabled: true
         x509:
           clientCAFile: "${ssl.intermediate["kubernetes-ca"].host_path}/kubernetes-ca.pem"
-      tlsCertFile: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-server"].certificates["kubelet-server"].key-keeper-args.spec.host_path}/kubelet-server.pem
-      tlsPrivateKeyFile: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-server"].certificates["kubelet-server"].key-keeper-args.spec.host_path}/kubelet-server-key.pem
+      tlsCertFile: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-server"].certificates["kubelet-server"].key-keeper-args.host_path}/kubelet-server.pem
+      tlsPrivateKeyFile: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-server"].certificates["kubelet-server"].key-keeper-args.host_path}/kubelet-server-key.pem
       authorization:
         mode: Webhook
         webhook:
@@ -268,8 +268,8 @@ write_files:
       users:
       - name: kube-scheduler
         user:
-          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-client"].certificates["kube-scheduler-client"].key-keeper-args.spec.host_path}/kube-scheduler-client.pem
-          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-client"].certificates["kube-scheduler-client"].key-keeper-args.spec.host_path}/kube-scheduler-client-key.pem
+          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-client"].certificates["kube-scheduler-client"].key-keeper-args.host_path}/kube-scheduler-client.pem
+          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-scheduler-client"].certificates["kube-scheduler-client"].key-keeper-args.host_path}/kube-scheduler-client-key.pem
 
   - path: ${base_path.kubernetes_path}/kube-controller-manager/kubeconfig
     owner: root:root
@@ -294,8 +294,8 @@ write_files:
       users:
       - name: kube-controller-manager
         user:
-          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-client"].certificates["kube-controller-manager-client"].key-keeper-args.spec.host_path}/kube-controller-manager-client.pem
-          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-client"].certificates["kube-controller-manager-client"].key-keeper-args.spec.host_path}/kube-controller-manager-client-key.pem
+          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-client"].certificates["kube-controller-manager-client"].key-keeper-args.host_path}/kube-controller-manager-client.pem
+          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-controller-manager-client"].certificates["kube-controller-manager-client"].key-keeper-args.host_path}/kube-controller-manager-client-key.pem
 
   - path: ${base_path.kubernetes_path}/kube-apiserver/kubeconfig
     owner: root:root
@@ -320,8 +320,8 @@ write_files:
       users:
       - name: kube-apiserver
         user:
-          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.spec.host_path}/kube-apiserver-kubelet-client.pem
-          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.spec.host_path}/kube-apiserver-kubelet-client-key.pem
+          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.host_path}/kube-apiserver-kubelet-client.pem
+          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kube-apiserver-kubelet-client"].certificates["kube-apiserver-kubelet-client"].key-keeper-args.host_path}/kube-apiserver-kubelet-client-key.pem
 
   - path: ${base_path.kubernetes_path}/kubelet/kubeconfig
     owner: root:root
@@ -346,8 +346,8 @@ write_files:
       users:
       - name: kubelet
         user:
-          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-client"].certificates["kubelet-client"].key-keeper-args.spec.host_path}/kubelet-client.pem
-          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-client"].certificates["kubelet-client"].key-keeper-args.spec.host_path}/kubelet-client-key.pem
+          client-certificate: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-client"].certificates["kubelet-client"].key-keeper-args.host_path}/kubelet-client.pem
+          client-key: ${ssl.intermediate["kubernetes-ca"].issuers["kubelet-client"].certificates["kubelet-client"].key-keeper-args.host_path}/kubelet-client-key.pem
 
 ####### Второстепенная настройка
   - path: ${base_path.kubernetes_path}/kube-apiserver/audit-policy.yaml
