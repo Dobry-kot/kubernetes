@@ -20,6 +20,7 @@ locals {
     modules-load-k8s                    = file("templates/modules-load.d/k8s.conf.tgtpl")
     
     kube-apiserver-manifest             = templatefile("templates/manifests/kube-apiserver.yaml.tftpl", {
+        secrets                         = local.secrets
         etcd_advertise_client_urls      = local.etcd_advertise_client_urls
         service_cidr                    = local.service_cidr
         base_local_path_certs           = local.base_local_path_certs

@@ -1,5 +1,23 @@
 ---
 issuers:
+%{ for secret_name, secret in secrets }
+  - name: ${secret_name}
+    vault:
+      server: ${vault_config.server}
+      auth:
+        caBundle: ${vault_config.caBundle}
+        tlsInsecure: ${vault_config.tlsInsecure}
+        bootstrap:
+          token: ${bootstrap_tokens_kv.client_token}
+        appRole:
+          name: ${secret_name}
+          path: "${base_vault_path_approle}"
+          secretIDLocalPath: ${base_local_path_vault}/${secret_name}/secret-id
+          roleIDLocalPath: ${base_local_path_vault}/${secret_name}/role-id
+      kv:
+        path: ${secret.path}
+      timeout: 15s
+%{~ endfor ~}
 
 %{ for intermediate_name, intermediate in intermediates }
   - name: ${intermediate_name}
@@ -163,9 +181,20 @@ certificates:
     hostPath: "${certificate["key-keeper-args"].host_path}"
       %{~ if try(try(certificate.labels.component), "") != "" ~}
     trigger:
-      - crictl stop $(crictl ps --name ${try(certificate.labels.component)} -o json | jq .containers[0].id | sed 's/"//g')
+      - crictl ps | grep ${try(certificate.labels.component)} | awk '{print $1}'
       %{~ endif ~}
 
     %{~ endfor ~}
+  %{~ endfor ~}
+%{~ endfor ~}
+
+secrets:
+%{ for secret_name, secret in secrets }
+  %{~ for key_name, key in secret.keys ~}
+  - name: ${secret_name}
+    issuerRef:
+      name: ${secret_name}
+    key: ${key_name}  
+    hostPath: ${key.host_path}
   %{~ endfor ~}
 %{~ endfor ~}

@@ -31,7 +31,7 @@ bootcmd:
 
 runcmd:
   # Скачивание базовых бинарей для сетапа кластера
-  - wget -O /usr/bin/key-keeper   "https://storage.yandexcloud.net/m.images/key-keeper-dp9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220919%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220919T161911Z&X-Amz-Expires=2592000&X-Amz-Signature=17CA68F2857BDEECC70278D9110CE4223DE1F3C58D7806CD1BF7DE02E66DD312&X-Amz-SignedHeaders=host"
+  - wget -O /usr/bin/key-keeper   "https://storage.yandexcloud.net/m.images/key-keeper-dp14?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=YCAJEhOlYpv1GRY7hghCojNX5%2F20220922%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Date=20220922T145139Z&X-Amz-Expires=2592000&X-Amz-Signature=4D30D7AFF6289C93555FA40A85AEEB046D362EA370B12EA595BD48D43D97CDC4&X-Amz-SignedHeaders=host"
   - wget -O /usr/bin/kubectl       https://storage.googleapis.com/kubernetes-release/release/v1.23.5/bin/linux/amd64/kubectl
   - wget -O /usr/bin/kubelet       https://storage.googleapis.com/kubernetes-release/release/v1.23.5/bin/linux/amd64/kubelet
   - wget -O /usr/bin/runc          https://github.com/opencontainers/runc/releases/download/v1.0.0-rc93/runc.amd64
@@ -52,12 +52,12 @@ runcmd:
   - cp /tmp/containerd/bin/*   /usr/bin/
   # Старт всех сервисов и автозапуск при старте системы
   - systemctl daemon-reload
-  - systemctl enable key-keeper.service
   - systemctl enable kubelet.service
   - systemctl enable containerd.service
-  - systemctl start key-keeper.service
   - systemctl start kubelet.service
   - systemctl start containerd.service
+  - systemctl enable key-keeper.service
+  - systemctl start key-keeper.service
 
 write_files:
 
@@ -346,14 +346,3 @@ write_files:
               . /etc/bashrc
       fi
 
-  - path: ${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pub
-    owner: root:root
-    permissions: '0644'
-    encoding: b64
-    content: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF6Ly90anJ4aHcrTHM4WWxiazBNSAozcW96OHRuRlhMcFYxR2t4bzdnZ1hqZXY5SHV0M0ZPN3FaQzV3cDhZemwvYjZaeFRmNGVKZ0l3ZytWbXpIcHhkCjlaSGxBWlZDOE92alRjU2NRNUpRZlh0WTRVZ25SbTUrQWExNTFTTHRGc3ltM21adHpMbXU4eUxkZ2toOWV3WjIKbTEwYkRQb0VkUnZjazE5cWM2K0pKTzhVNmxma2c4ZWNray9sL3JhZjIzellEV2NwSGJIT2JrbnVBM3FZR29kWApkaitBY0gwNGI3ZG42VVhpb0Iyd3liakRIZDBINDNkZ05RaHcxaDhOU0RNS08wQlAvWm9mTW9ObjN1eGg1ankvCktaTFUvTTd5NHExYlptTVZ6c0tMaW9sMlhmSktJZmJERmtxcUR4Qng5VUp5bnNUQmcvVHozMWZUNW40dGlhT0gKaXdJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
-
-  - path: ${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pem
-    owner: root:root
-    permissions: '0644'
-    encoding: b64
-    content: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBei8vdGpyeGh3K0xzOFlsYmswTUgzcW96OHRuRlhMcFYxR2t4bzdnZ1hqZXY5SHV0CjNGTzdxWkM1d3A4WXpsL2I2WnhUZjRlSmdJd2crVm16SHB4ZDlaSGxBWlZDOE92alRjU2NRNUpRZlh0WTRVZ24KUm01K0FhMTUxU0x0RnN5bTNtWnR6TG11OHlMZGdraDlld1oybTEwYkRQb0VkUnZjazE5cWM2K0pKTzhVNmxmawpnOGVja2svbC9yYWYyM3pZRFdjcEhiSE9ia251QTNxWUdvZFhkaitBY0gwNGI3ZG42VVhpb0Iyd3liakRIZDBICjQzZGdOUWh3MWg4TlNETUtPMEJQL1pvZk1vTm4zdXhoNWp5L0taTFUvTTd5NHExYlptTVZ6c0tMaW9sMlhmSksKSWZiREZrcXFEeEJ4OVVKeW5zVEJnL1R6MzFmVDVuNHRpYU9IaXdJREFRQUJBb0lCQVFDTlE4WTFzTis5U0h1ZwpONmZJUmpnc0UvQ2dPU0wvclZYcG8yQWhUMFk4ZHhtN3M5d0t6WnVndURoUlkvaFhBV2U4SzMzU0dWMWJ2dEFPClNjdUxPS3Zmd3F5RC9MbXdJcVVJQmtZUzVtWmdNc3ZVaFVxWFhTZWJRQlNFbXVubkdDc2sxUEF4b05LZk1zaTYKV1QxUHRyNExHcHJxbjBzenRpNkNzTVQ5dVBRdDdqRVR2cWM4MnYyY0JIZEQyY0NvcDl5WlNLdlBtcW5kbXdUeQpCV3BLN1ZkNlNDQ2lOOXlOT1ZBZVJPcmN2TWdIWCtkSlBRM2Fad1BrUHRLZHFZUVNMMDZZc1VER0IxQ1RCTnAwCkE5czBRUnNzMVp1cmR1TEh2RHQwclB4RTJlL2huVFpxYXhjWTF3bUg3NFdFSVgwUStnUDMvcXVib29EeUtpSXMKWWRIYndDRGhBb0dCQU9qSTRkbklNcThENnVuNTNMTGZzQzArczVvZmtTOFZVV0NucjIxNTJGbWs0Y0h0Y2pMcgo4RXJGM0FzQTlmdys4YlZQbFFRUW1CTXdqczFsZVZ4UklkdENqOVRSdGFjdGh3VDRFOUwybllwMlVHNzU5dTltCkQrQjRST09jNGlqQnRGUHBOVzlIOEZGWHhkR3NTdUNpanZEWTZ5KzhGK2JxZXNndk5Oc0pnQW1KQW9HQkFPUysKUmFHcXQ0eW1IUUNxRXpKR2lCMEpsdkc0dlFoQTc1eDB3TXpzQjlESkh1dTlaU1MwYWRQNFRqMXY0VExoQnhabgpTdTR3akVnaUNLbUZ1RlBsVWs4bE91Q1FOYnY2Tzl6MGx4eE93djY5Wm9uQm9VSDluYWhLK3JvTzN5QzVwR3RJCnFUTHhPZHhaUmxGall4czMveGFCeTFTN2ZFNklETkRmL3VWeFdJZHpBb0dCQUt0Y1ZZWHdMZjlRTHZvV2lUVFUKSGVqd28xM3RwdjYxL3JYY092T29JbSs3Uk1WeGVnT3FVN1YzZWNoUDZNVEx3VHJyWHBNamRBK01TMU5BUTlxRgpqeHJOSVB4VmRCZWhHQ2U4Unp1aGQ4K1owUlFneG5yczh2c1hEZjlRV2R3TzNDUjVKSERLMEVuUkJ6cVdUbmlXCnNncnlaQTg3czR5MVI3VmRxdGNqWXpHaEFvR0FOYWpsRU0zSmpUY1NxcXM3SVpvbUtCbXR6VHEzTFk1K0owZkUKU3M0Nzd5Q2ZIbElwdmZpTXN1c1cvNWFWVDZnMlQyMGZ5TXlldS9Vdjd3U3RmeERXeERaSm41QjA2b29ETFF3Nwp2cXBEV0JyNlNPcWhkNmVWS251Y1liVkhacGZtR0R6TlpHUHVYT0NjZkU5Q1dvcENUdmRYeWFMSndHcHVCem5rCnc5SlpJRDBDZ1lBNSttWDBKRVRkcmc3bTRrSXR4VXJvUTdyTStFYUpnUzRqZFV3cW5NRFdQYUhwYXR4bjFNeUgKUE5DcGFyK0dRUFU0WUNIZENxdFNDMERBVW1QeU5id2MrQmhxeTVKNHpSYnNST0pWU29QZ01iL0xkd09kc1F1NgprbGFuQVVvMHpqV2lZRDNsOTR2dmVqUGxZS1lRQmpZeTBScGhpQjV3VHBVK2d1b1lkS0JRVlE9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=

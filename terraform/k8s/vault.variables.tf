@@ -61,12 +61,12 @@ locals {
             encoding  = "PKCS1"
             size      = 4096
           }
-          ttl         = "2h"
+          ttl         = "20m"
           ipAddresses = {}
           hostnames   = []
           usages      = []
         }
-        renewBefore   = "1h"
+        renewBefore   = "10m"
         trigger       = []
 
       }
@@ -621,7 +621,19 @@ locals {
         max_lease_ttl_seconds     = 321408000
       }
     }
-    certificates = {
+  }
+  
+  secrets = {
+    kube-apiserver-sa = {
+      path = local.base_vault_path_kv
+      keys = {
+        public = {
+          host_path = "${local.base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pub"
+        }
+        private = {
+          host_path = "${local.base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pem"
+        }
+      }
     }
   }
 }

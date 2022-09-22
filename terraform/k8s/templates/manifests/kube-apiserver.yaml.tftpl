@@ -26,8 +26,9 @@ spec:
       - --proxy-client-cert-file=${ssl.intermediate["front-proxy-ca"].issuers["front-proxy-client"].certificates["front-proxy-client"].key-keeper-args.host_path}/front-proxy-client.pem
       - --proxy-client-key-file=${ssl.intermediate["front-proxy-ca"].issuers["front-proxy-client"].certificates["front-proxy-client"].key-keeper-args.host_path}/front-proxy-client-key.pem
       - --requestheader-client-ca-file=${ssl.intermediate["front-proxy-ca"].host_path}/front-proxy-ca.pem
-      - --service-account-key-file=${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pub
-      - --service-account-signing-key-file=${base_local_path_certs}/certs/kube-apiserver/kube-apiserver-sa.pem
+      # Ключи для выпуска service accounts
+      - --service-account-key-file=${secrets["kube-apiserver-sa"].keys["public"].host_path}
+      - --service-account-signing-key-file=${secrets["kube-apiserver-sa"].keys["private"].host_path}
       - --service-cluster-ip-range=${service_cidr}
       # - --secure-port=6443
       # - --advertise-address=29.64.0.1

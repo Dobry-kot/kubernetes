@@ -22,16 +22,28 @@ resource "vault_policy" "kubernetes-kv" {
 
   policy = templatefile("templates/vault-kv-read.tftpl", { 
     cluster_name       = "${var.cluster_name}",
-    approle_name       = "kubernetes-sa-read"
+    approle_name       = "kube-apiserver-sa"
     }
   )
 }
 
 resource "vault_approle_auth_backend_role" "kubernetes-kv" {
   backend                 = "${vault_auth_backend.approle.path}"
-  role_name               = "kubernetes-sa-read"
+  role_name               = "kube-apiserver-sa"
   token_ttl               = 300
   token_policies          = ["default", vault_policy.kubernetes-kv.name]
   secret_id_bound_cidrs   = []
   token_bound_cidrs       = []
+}
+
+resource "vault_approle_auth_backend_role_secret_id" "kubernetes-kv-id" {
+  backend   = "${vault_auth_backend.approle.path}"
+  role_name = "${vault_approle_auth_backend_role.kubernetes-kv.role_name}"
+  cidr_list = []
+}
+
+resource "vault_approle_auth_backend_login" "kubernetes-kv-login" {
+  backend   = "${vault_auth_backend.approle.path}"
+  role_id   = "${vault_approle_auth_backend_role.kubernetes-kv.role_id}"
+  secret_id = "${vault_approle_auth_backend_role_secret_id.kubernetes-kv-id.secret_id}"
 }
