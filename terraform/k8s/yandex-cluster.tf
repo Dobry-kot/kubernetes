@@ -84,15 +84,12 @@ resource "yandex_compute_instance" "master" {
     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
     user-data = templatefile("templates/cloud-init-master.tftpl", {
 
-        ssh_key               = file("~/.ssh/id_rsa.pub")
-        base_local_path_certs = local.base_local_path_certs
-        ssl                   = local.ssl
-        kubelet-config        = local.kubelet-config
-        instance_type         = var.master-configs.group
-        base_path             = var.base_path
-        instance_name         = "${var.master-configs.group}-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}.${var.base_domain}"
+        ssh_key                           = file("~/.ssh/id_rsa.pub")
+        base_local_path_certs             = local.base_local_path_certs
+        ssl                               = local.ssl
+        base_path                         = var.base_path
 
-        key_keeper_config                 = templatefile("templates/key-keeper-config.tftpl", {
+        key_keeper_config                 = templatefile("templates/services/key-keeper/config.tftpl", {
           intermediates                   = local.ssl.intermediate
           base_local_path_vault           = local.base_local_path_vault
           base_vault_path_approle         = local.base_vault_path_approle
@@ -105,6 +102,12 @@ resource "yandex_compute_instance" "master" {
           availability_zone               = "${each.key}"
           instance_name                   = "${var.master-configs.group}-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
         })
+        kubelet-service-args              = templatefile("templates/services/kubelet/service-args.conf.tftpl", {
+          instance_name                   = "${var.master-configs.group}-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
+          instance_type                   = var.master-configs.group
+          base_path                       = var.base_path
+          base_domain                     = var.base_domain
+        })
         etcd-manifest                     = templatefile("templates/manifests/etcd.yaml.tftpl", {
           etcd_initial_cluster            = local.etcd_initial_cluster
           base_local_path_certs           = local.base_local_path_certs
@@ -115,30 +118,18 @@ resource "yandex_compute_instance" "master" {
           etcd-version                    = var.etcd-image.version
           instance_name                   = "${var.master-configs.group}-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
         })
-        kube-apiserver-manifest           = templatefile("templates/manifests/kube-apiserver.yaml.tftpl", {
-          etcd_advertise_client_urls      = local.etcd_advertise_client_urls
-          service_cidr                    = local.service_cidr
-          base_local_path_certs           = local.base_local_path_certs
-          ssl                             = local.ssl
-          kube-apiserver-image            = var.kube-apiserver-image
-          kubernetes-version              = var.kubernetes-version
-          base_path                       = var.base_path
-        })
-        kube-controller-manager-manifest  = templatefile("templates/manifests/kube-controller-manager.yaml.tftpl", {
-          service_cidr                    = local.service_cidr
-          base_local_path_certs           = local.base_local_path_certs
-          ssl                             = local.ssl
-          kube-controller-manager-image   = var.kube-controller-manager-image
-          kubernetes-version              = var.kubernetes-version
-          base_path                       = var.base_path
-        })
-        kube-scheduler-manifest           = templatefile("templates/manifests/kube-scheduler.yaml.tftpl", {
-          base_local_path_certs           = local.base_local_path_certs
-          ssl                             = local.ssl
-          kube-scheduler-image            = var.kube-scheduler-image
-          kubernetes-version              = var.kubernetes-version
-          base_path                       = var.base_path
-        })
+
+        kube-apiserver-manifest           = local.kube-apiserver-manifest
+        kube-controller-manager-manifest  = local.kube-controller-manager-manifest 
+        kube-scheduler-manifest           = local.kube-scheduler-manifest
+        kubelet-service-d-fraima          = local.kubelet-service-d-fraima
+        containerd-service                = local.containerd-service
+        base-cni                          = local.base-cni
+        sysctl-network                    = local.sysctl-network
+        kubelet-config                    = local.kubelet-config
+        kubelet-service                   = local.kubelet-service
+        key-keeper-service                = local.key-keeper-service
+        modules-load-k8s                  = local.modules-load-k8s
       })
   }
 }

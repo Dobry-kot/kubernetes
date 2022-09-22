@@ -35,7 +35,7 @@ locals {
   service_cidr  = "29.64.0.0/16"
   dns_address   = format("%s.10", join(".", slice(split(".",local.service_cidr), 0, 3)) )
   
-  kubelet-config = {
+  kubelet-config-args = {
     dns_address = local.dns_address
   }
 }
