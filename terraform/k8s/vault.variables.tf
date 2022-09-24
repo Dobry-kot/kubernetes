@@ -61,12 +61,12 @@ locals {
             encoding  = "PKCS1"
             size      = 4096
           }
-          ttl         = "20m"
+          ttl         = "10m"
           ipAddresses = {}
           hostnames   = []
           usages      = []
         }
-        renewBefore   = "10m"
+        renewBefore   = "5m"
         trigger       = []
 
       }
@@ -134,7 +134,7 @@ locals {
             certificates = {
               kube-controller-manager-server = {
                 labels = {
-                  component = "kube-controller-manager"
+                  component = "kube-controller-manager" 
                 }
                 key-keeper-args = {
                   spec = {
@@ -170,6 +170,7 @@ locals {
               key_usage = ["DigitalSignature", "KeyAgreement", "KeyEncipherment", "ClientAuth"]
               allowed_domains = [
                 "custom:kube-apiserver-kubelet-client",
+                "custom:terrafor-kubeconfig",
               ]
               organization = ["system:masters"]
               client_flag  = true
@@ -214,7 +215,7 @@ locals {
             certificates = {
               kube-apiserver = {
                 labels = {
-                  component = "kube-apiserver"
+                  component = "kube-apiserver" 
                 }
                 key-keeper-args = {
                   spec = {
@@ -234,6 +235,9 @@ locals {
                       "api.${var.cluster_name}.${var.base_domain}"
                     ]
                     ipAddresses = {
+                      static = [
+                        local.api_address
+                      ]
                       interfaces = [
                         "lo",
                         "eth*"
@@ -267,7 +271,7 @@ locals {
             certificates = {
               kube-scheduler-server = {
                 labels = {
-                  component = "kube-scheduler"
+                  component = "kube-scheduler" 
                 }
                 key-keeper-args = {
                   spec = {
@@ -321,6 +325,26 @@ locals {
               }
             }
           },
+          kubelet-peer-k8s-certmanager = {
+            issuer-args = {
+              backend   = "clusters/${var.cluster_name}/pki/kubernetes"
+              key_usage = ["DigitalSignature", "KeyAgreement", "KeyEncipherment", "ServerAuth","ClientAuth"]
+              allowed_domains = [
+                "localhost",
+                "*.${var.cluster_name}.${var.base_domain}",
+                "${ var.instance_name }.${var.cluster_name}.${var.base_domain}",
+                "system:node:*"
+              ]
+              organization = [
+                "system:nodes",
+              ]
+              server_flag     = true
+              client_flag     = true
+              allow_ip_sans   = true
+              allow_localhost = true
+            }
+            certificates = {}
+          }
           kubelet-server = {
             labels = {
               type = "worker"
@@ -336,6 +360,7 @@ locals {
               ]
               organization = [
                 "system:nodes",
+                "system:authenticated"
               ]
               server_flag     = true
               allow_ip_sans   = true
@@ -343,6 +368,10 @@ locals {
             }
             certificates = {
               kubelet-server = {
+                labels = {
+                  component = "kubelet"
+                  trigger-command = "['systemctl','restart','kubelet']"
+                }
                 key-keeper-args = {
                   spec = {
                     subject = {
@@ -364,10 +393,10 @@ locals {
                       ]
                       dnsLookup = []
                     }
-                    ttl = "200h"
+                    # ttl = "200h"
                   }
                   host_path     = "${local.base_local_path_certs}/certs/kubelet"
-                  renewBefore   = "100h"
+                  # renewBefore   = "100h"
                 }
               }
             }
@@ -389,6 +418,10 @@ locals {
             }
             certificates = {
               kubelet-client = {
+                labels = {
+                  component = "kubelet"
+                  trigger-command = "['systemctl','restart','kubelet']"
+                }
                 key-keeper-args = {
                   spec = {
                     subject = {
@@ -641,9 +674,10 @@ locals {
 locals {
   issuers_content = flatten([
   for name in keys(local.ssl.intermediate) : [
-    for issuer_name,issuer in local.ssl.intermediate[name].issuers : {
-      "${name}:${issuer_name}" = merge("${local.ssl["global-args"]["issuer-args"]}", issuer["issuer-args"])
-        }
+    for issuer_name,issuer in local.ssl.intermediate[name].issuers : [
+      for availability_zone_name in sort(keys(var.availability_zones)):  
+        {"${name}:${issuer_name}:${availability_zone_name}" = merge("${local.ssl["global-args"]["issuer-args"]}", issuer["issuer-args"])}
+        ]
       ]
     ]
   )

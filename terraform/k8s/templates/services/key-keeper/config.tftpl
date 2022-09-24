@@ -8,7 +8,7 @@ issuers:
         caBundle: ${vault_config.caBundle}
         tlsInsecure: ${vault_config.tlsInsecure}
         bootstrap:
-          token: ${bootstrap_tokens_kv.client_token}
+          token: ${bootstrap_tokens_kv[secret_name].client_token}
         appRole:
           name: ${secret_name}
           path: "${base_vault_path_approle}"
@@ -46,9 +46,9 @@ issuers:
         caBundle: ${vault_config.caBundle}
         tlsInsecure: ${vault_config.tlsInsecure}
         bootstrap:
-          token: ${bootstrap_tokens_sign[format("%s:%s", intermediate_name, issuer_name)].client_token}
+          token: ${bootstrap_tokens_sign[format("%s:%s:%s", intermediate_name, issuer_name, availability_zone)].client_token}
         appRole:
-          name: ${issuer_name}
+          name: ${issuer_name}-${availability_zone}
           path: "${base_vault_path_approle}"
           secretIDLocalPath: ${base_local_path_vault}/${issuer_name}/secret-id
           roleIDLocalPath: ${base_local_path_vault}/${issuer_name}/role-id
@@ -147,7 +147,10 @@ certificates:
       %{~ if try(certificate["key-keeper-args"].spec.ipAddresses, base_certificate_atrs.spec.ipAddresses) != {} ~}
       ipAddresses:
         %{~ if try(certificate["key-keeper-args"].spec.ipAddresses.static, "") != "" ~}
-        static: ${ certificate["key-keeper-args"].spec.ipAddresses.static }
+        static:
+          %{~ for static in certificate["key-keeper-args"].spec.ipAddresses.static~}
+          - ${static}
+          %{~ endfor ~}
         %{~ endif ~}
         %{~ if try(certificate["key-keeper-args"].spec.ipAddresses.interfaces, []) != [] ~}
         interfaces:
@@ -179,10 +182,12 @@ certificates:
       %{~ endif ~}
     renewBefore: ${try(certificate["key-keeper-args"].renewBefore, base_certificate_atrs.renewBefore)}
     hostPath: "${certificate["key-keeper-args"].host_path}"
-      %{~ if try(try(certificate.labels.component), "") != "" ~}
-    trigger:
-      - crictl ps | grep ${try(certificate.labels.component)} | awk '{print $1}'
-      %{~ endif ~}
+    #   %{~ if try(certificate.labels.component, "") != "" ~}
+    #     %{~ if try(certificate.labels.trigger-command, "") != "" ~}
+    # trigger:
+    #   - ${try(certificate.labels.trigger-command, "")}
+    #     %{~ endif ~}
+    #   %{~ endif ~}
 
     %{~ endfor ~}
   %{~ endfor ~}

@@ -3,11 +3,7 @@ path "${pki_path}/cert/ca" {
     capabilities = ["read"]
 }
 
-path "auth/clusters/${cluster_name}/approle/role/${approle_name}/role-id" {
-  capabilities = [ "read" ]
-}
-
-path "auth/clusters/${cluster_name}/approle/role/${approle_name}/secret-id" {
+path "auth/clusters/${cluster_name}/approle/login" {
   capabilities = [ "update" ]
 }
 

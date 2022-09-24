@@ -6,15 +6,3 @@ path "auth/clusters/${cluster_name}/approle/role/${approle_name}/role-id" {
 path "auth/clusters/${cluster_name}/approle/role/${approle_name}/secret-id" {
   capabilities = [ "update" ]
 }
-
-path "clusters/${cluster_name}/kv/data/kube-apiserver-sa" {
-    capabilities = ["read"]
-}
-
-path "auth/token/renew" {
-    capabilities = ["update"]
-}
-
-path "auth/token/renew-self" {
-    capabilities = ["update"]
-}

@@ -90,15 +90,18 @@ resource "yandex_compute_instance" "master" {
         base_path                         = var.base_path
 
         key_keeper_config                 = templatefile("templates/services/key-keeper/config.tftpl", {
+          availability_zone               = "${each.key}"
           intermediates                   = local.ssl.intermediate
           base_local_path_vault           = local.base_local_path_vault
           base_vault_path_approle         = local.base_vault_path_approle
           base_certificate_atrs           = local.ssl.global-args.key-keeper-args
+          secrets                         = local.secrets
           cluster_name                    = var.cluster_name
           base_domain                     = var.base_domain
           vault_config                    = var.vault_config
-          bootstrap_tokens_ca             = "${vault_approle_auth_backend_login.kubernetes-ca-login}"
-          bootstrap_tokens_sign           = "${vault_approle_auth_backend_login.kubernetes-sign-login}"
+          bootstrap_tokens_ca             = "${vault_token.kubernetes-ca-login}"
+          bootstrap_tokens_sign           = "${vault_token.kubernetes-sign-login}"
+          bootstrap_tokens_kv             = "${vault_token.kubernetes-kv-login}"
           availability_zone               = "${each.key}"
           instance_name                   = "${var.master-configs.group}-${index(keys(var.availability_zones), each.key)}.${var.cluster_name}"
         })

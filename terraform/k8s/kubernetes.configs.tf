@@ -33,6 +33,7 @@ locals {
   etcd_initial_cluster       = join(",", local.etcd_list_initial_cluster)
 
   service_cidr  = "29.64.0.0/16"
+  api_address   = format("%s.1", join(".", slice(split(".",local.service_cidr), 0, 3)) )
   dns_address   = format("%s.10", join(".", slice(split(".",local.service_cidr), 0, 3)) )
   
   kubelet-config-args = {
